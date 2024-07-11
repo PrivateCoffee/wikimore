@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Search Results for "{{ query }}"</h1>
+    <ul>
+        {% for result in search_results %}
+        <li>
+            <a href="{{ url_for('wiki_article', project=project, lang=lang, title=result['title']) }}">{{ result['title'] }}</a>
+            <p>{{ result['snippet']|safe }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
