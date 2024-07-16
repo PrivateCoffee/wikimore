@@ -1,0 +1,32 @@
+name: Python Package CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  publish:
+    name: Publish to PyPI
+    container:
+      image: node:20-bookworm
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y python3 python3-venv
+
+      - name: Publish to PyPI
+        run: |
+          python3 -m venv venv
+          . ./venv/bin/activate
+          pip install -U twine build
+          python -m build .
+          python -m twine upload --username __token__ --password ${PYPI_TOKEN} dist/*
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
