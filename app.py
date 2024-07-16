@@ -27,6 +27,10 @@ def get_proxy_url(url):
 @app.route("/proxy")
 def proxy():
     url = request.args.get("url")
+
+    if not url or not url.startswith("https://upload.wikimedia.org/"):
+        return "Invalid URL"
+
     with urllib.request.urlopen(url) as response:
         data = response.read()
     return data
