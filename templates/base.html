@@ -87,14 +87,14 @@
         <h1><a href="/">Wikimore</a></h1>
         <form id="search-form" action="{{ url_for('search') }}" method="post">
             <select name="project" id="project">
-                <option value="wikipedia">Wikipedia</option>
-                <option value="wiktionary">Wiktionary</option>
-                <!-- TODO: Add more projects -->
+            {% for key, value in wikimedia_projects.items() %}
+                <option value="{{ key }}">{{ value }}</option>
+            {% endfor %}
             </select>
             <select name="lang" id="lang">
-                <option value="en">English</option>
-                <option value="de">German</option>
-                <!-- TODO: Add more languages -->
+            {% for key, value in languages.items() %}
+                <option value="{{ key }}">{{ value["name"] }}</option>
+            {% endfor %}
             </select>
             <input type="text" name="query" id="query" placeholder="Search Wikipedia" required>
             <button type="submit">Search</button>
@@ -104,7 +104,7 @@
         {% block content %}{% endblock %}
     </div>
     <div id="footer">
-        <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a></p>
+        <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a>, a <a href="https://private.coffee">Private.coffee</a> project</p>
     </div>
 </body>
 </html>
