@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wikimore"
-version = "0.1.1"
+version = "0.1.2"
 authors = [{ name = "Private.coffee Team", email = "support@private.coffee" }]
 description = "A simple frontend for Wikimedia wikis"
 readme = "README.md"
