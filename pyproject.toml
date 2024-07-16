@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wikimore"
-version = "0.1.0"
+version = "0.1.1"
 authors = [{ name = "Private.coffee Team", email = "support@private.coffee" }]
 description = "A simple frontend for Wikimedia wikis"
 readme = "README.md"
@@ -12,7 +12,7 @@ license = { file = "LICENSE" }
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = ["flask", "bs4"]
