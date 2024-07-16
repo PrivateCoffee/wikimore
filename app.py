@@ -169,7 +169,7 @@ def wiki_article(project, lang, title):
     processed_html = str(soup)
     return render_template(
         "article.html",
-        title=title,
+        title=title.replace("_", " "),
         content=processed_html,
         wikimedia_projects=app.wikimedia_projects,
         languages=app.languages,
