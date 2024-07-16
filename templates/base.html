@@ -93,7 +93,7 @@
             </select>
             <select name="lang" id="lang">
             {% for key, value in languages.items() %}
-                <option value="{{ key }}">{{ value["name"] }}</option>
+                <option {% if key == "en" %}selected="selected"{% endif %} value="{{ key }}">{{ value["name"] }}</option>
             {% endfor %}
             </select>
             <input type="text" name="query" id="query" placeholder="Search Wikipedia" required>
