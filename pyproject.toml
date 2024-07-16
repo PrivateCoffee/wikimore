@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wikimore"
+version = "0.1.0"
+authors = [{ name = "Private.coffee Team", email = "support@private.coffee" }]
+description = "A simple frontend for Wikimedia wikis"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+]
+dependencies = ["flask", "bs4"]
+
+[project.scripts]
+wikimore = "wikimore.app:main"
+
+[project.urls]
+"Homepage" = "https://git.private.coffee/privatecoffee/wikimore"
+"Bug Tracker" = "https://git.private.coffee/privatecoffee/wikimore/issues"
+"Source Code" = "https://git.private.coffee/privatecoffee/wikimore"

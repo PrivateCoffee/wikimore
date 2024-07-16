@@ -3,6 +3,7 @@ import urllib.request
 from urllib.parse import urlencode, urlparse
 from html import escape
 import json
+import os
 import logging
 from bs4 import BeautifulSoup
 
@@ -208,7 +209,15 @@ def search_redirect(project, lang, query):
 
 app.wikimedia_projects, app.languages = get_wikimedia_projects()
 
-print(len(app.wikimedia_projects), len(app.languages))
+logger.debug(
+    f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
+)
+
+def main():
+    port = int(os.environ.get("PORT", 8109))
+    host = os.environ.get("HOST", "0.0.0.0")
+    debug = os.environ.get("DEBUG", False)
+    app.run(port=port, host=host, debug=debug)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()

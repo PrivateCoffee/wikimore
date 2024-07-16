@@ -10,10 +10,11 @@
             "request": "launch",
             "module": "flask",
             "env": {
-                "FLASK_APP": "app.py",
                 "FLASK_DEBUG": "1",
             },
             "args": [
+                "--app",
+                "wikimore",
                 "run",
                 "--no-debugger",
                 "--no-reload",
