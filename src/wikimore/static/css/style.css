@@ -1,0 +1,385 @@
+/* General styling */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+}
+
+/* Link styling */
+a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+/* Header styling */
+#header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #a2a9b1;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#header h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+#header h1 a {
+    text-decoration: none;
+    color: #333;
+}
+
+/* Search styling */
+#search-form {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+#search-form input[type="text"] {
+    width: 300px;
+    padding: 5px;
+}
+
+#search-form select {
+    padding: 5px;
+}
+
+#search-form button {
+    padding: 5px 10px;
+}
+
+/* Content styling */
+#content {
+    padding: 20px;
+}
+
+h1 {
+    font-size: 2em;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.sidebar {
+    float: right;
+    width: 250px;
+    margin-left: 20px;
+    background-color: #ffffff;
+    border: 1px solid #a2a9b1;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.toc {
+    list-style-type: none;
+    padding: 0;
+}
+
+.toc li {
+    margin-bottom: 5px;
+}
+
+.toc a {
+    text-decoration: none;
+    color: #333;
+}
+
+.toc a:hover {
+    text-decoration: underline;
+}
+
+#footer {
+    background-color: #ffffff;
+    border-top: 1px solid #a2a9b1;
+    padding: 10px;
+    text-align: center;
+}
+
+/* General table styling */
+.table {
+    margin: 1em auto;
+    font-size: small;
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 100%;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+}
+
+.table th {
+    background-color: #1e90ff;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+}
+
+.table td {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+.table a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.table a:hover {
+    text-decoration: underline;
+}
+
+.table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.table tr:hover {
+    background-color: #ddd;
+}
+
+.table td div {
+    font-weight: bold;
+}
+
+/* Specific class styling */
+.succession-box {
+    clear: both;
+}
+
+.noprint {
+    display: none;
+}
+
+.navbox {
+    padding: 3px;
+    background-color: #f9f9f9;
+    margin-bottom: 1em;
+}
+
+.navbox-title {
+    background-color: #bbddff;
+    color: #000;
+    font-size: 114%;
+    margin: 0 4em;
+    text-align: center;
+    padding: 10px;
+}
+
+.navbox-group {
+    background-color: #bbddff;
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.navbox-list {
+    padding: 0;
+}
+
+.navbox-list a {
+    color: #1e90ff;
+}
+
+.navbox-list a:hover {
+    text-decoration: underline;
+}
+
+.navbox-image img {
+    width: 80px;
+    height: auto;
+}
+
+.navbox-abovebelow {
+    background-color: #bbddff;
+    padding: 10px;
+    text-align: center;
+}
+
+.navbox-inner {
+    border-spacing: 0;
+    background: transparent;
+    color: inherit;
+}
+
+.navbar {
+    text-align: center;
+    padding: 5px;
+}
+
+.navbox-list-with-group {
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.hlist ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hlist ul li {
+    display: inline;
+    margin-right: 10px;
+}
+
+.hlist ul li a {
+    color: #1e90ff;
+}
+
+.hlist ul li a:hover {
+    text-decoration: underline;
+}
+
+/* Authority control styling */
+.authority-control {
+    padding: 3px;
+    text-align: left;
+    margin-bottom: 1em;
+    border: 1px solid #ddd;
+}
+
+.uid a {
+    color: #1e90ff;
+}
+
+.uid a:hover {
+    text-decoration: underline;
+}
+
+/* Sidebar styling */
+.infobox {
+    float: right;
+    margin: 1em;
+    width: 300px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 10px;
+    font-size: small;
+    border-collapse: collapse;
+}
+
+.infobox-above {
+    background-color: #1e90ff;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+}
+
+.infobox-above a {
+    color: white;
+}
+
+.infobox-subheader {
+    background-color: #bbddff;
+    text-align: center;
+    padding: 5px;
+    font-weight: bold;
+}
+
+.infobox-full-data {
+    text-align: center;
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+.infobox-label {
+    background-color: #f2f2f2;
+    padding: 5px;
+    text-align: left;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+
+.infobox-data {
+    padding: 5px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.ib-settlement-cols {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+}
+
+.ib-settlement-cols-cell {
+    text-align: center;
+}
+
+.ib-settlement-caption-link {
+    margin-top: 5px;
+}
+
+.ib-settlement-caption {
+    text-align: center;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+.ib-settlement-nickname {
+    font-style: italic;
+}
+
+.infobox-header {
+    background-color: #1e90ff;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Figure styling */
+figure, .tmulti {
+    margin: 1em 0;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    display: inline-block;
+}
+
+figure img, .mw-file-element {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    padding: 5px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+figcaption, .thumbcaption {
+    margin-top: 10px;
+    font-size: small;
+    text-align: left;
+    color: #555;
+    text-align: center;
+}
+
+.mw-halign-left {
+    float: left;
+    margin-right: 1em;
+}
+
+.mw-halign-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.mw-halign-right {
+    float: right;
+    margin-left: 1em;
+}
+
+/* Reference styling */
+.reflist-lower-alpha .references {
+    list-style-type: lower-alpha;
+}

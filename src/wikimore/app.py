@@ -5,9 +5,11 @@ from html import escape
 import json
 import os
 import logging
+import pathlib
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
+app.static_folder = pathlib.Path(__file__).parent / "static"
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -54,7 +56,9 @@ def get_proxy_url(url):
     if url.startswith("//"):
         url = "https:" + url
 
-    if not url.startswith("https://upload.wikimedia.org/"):
+    if not url.startswith("https://upload.wikimedia.org/") and not url.startswith(
+        "https://maps.wikimedia.org/"
+    ):
         logger.debug(f"Not generating proxy URL for {url}")
         return url
 
@@ -66,7 +70,10 @@ def get_proxy_url(url):
 def proxy():
     url = request.args.get("url")
 
-    if not url or not url.startswith("https://upload.wikimedia.org/"):
+    if not url or not (
+        url.startswith("https://upload.wikimedia.org/")
+        or url.startswith("https://maps.wikimedia.org/")
+    ):
         logger.error(f"Invalid URL for proxying: {url}")
         return "Invalid URL"
 
@@ -213,11 +220,13 @@ logger.debug(
     f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
 )
 
+
 def main():
     port = int(os.environ.get("PORT", 8109))
     host = os.environ.get("HOST", "0.0.0.0")
     debug = os.environ.get("DEBUG", False)
     app.run(port=port, host=host, debug=debug)
+
 
 if __name__ == "__main__":
     main()
