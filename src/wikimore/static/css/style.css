@@ -158,6 +158,7 @@ h1 {
     padding: 3px;
     background-color: #f9f9f9;
     margin-bottom: 1em;
+    font-size: small;
 }
 
 .navbox-title {
@@ -344,7 +345,7 @@ figure, .tmulti {
     display: inline-block;
 }
 
-figure img, .mw-file-element {
+figure img, .tmulti .mw-file-element {
     max-width: 100%;
     height: auto;
     border: 1px solid #ddd;
@@ -382,4 +383,18 @@ figcaption, .thumbcaption {
 /* Reference styling */
 .reflist-lower-alpha .references {
     list-style-type: lower-alpha;
+}
+
+/* Interwiki link styling */
+.sister-logo {
+    display: inline-block;
+}
+
+.sister-link {
+    display: inline;
+    margin-left: 5px;
+}
+
+span {
+    display: inline;
 }
