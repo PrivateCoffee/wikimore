@@ -109,7 +109,7 @@ def search():
     )
 
 
-@app.route("/<project>/<lang>/wiki/<title>")
+@app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(project, lang, title):
     language_projects = app.languages.get(lang, {}).get("projects", {})
     base_url = language_projects.get(project)
@@ -126,6 +126,17 @@ def wiki_article(project, lang, title):
     article_html = next(iter(pages.values()))["revisions"][0]["*"]
 
     soup = BeautifulSoup(article_html, "html.parser")
+
+    redirect_message = soup.find("div", class_="redirectMsg")
+
+    if redirect_message and not (request.args.get("redirect") == "no"):
+        redirect_dest = redirect_message.find("a")["title"]
+        logger.debug(f"Redirecting to {redirect_dest}")
+        destination = url_for(
+            "wiki_article", project=project, lang=lang, title=redirect_dest
+        )
+        logger.debug(f"Redirect URL: {destination}")
+        return redirect(destination)
 
     for a in soup.find_all("a", href=True):
         href = a["href"]
