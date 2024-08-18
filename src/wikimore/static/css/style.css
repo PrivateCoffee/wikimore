@@ -204,6 +204,7 @@ h1 {
     padding: 0;
     margin: 0;
     border-bottom: 1px solid #ddd;
+    display: flex;
 }
 
 .navbar {
@@ -347,6 +348,8 @@ figcaption,
 .mw-default-size {
     width: fit-content;
     float: left;
+    clear: left;
+    max-width: 300px;
 }
 
 /* Reference styling */
