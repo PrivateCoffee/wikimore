@@ -147,7 +147,8 @@ h1 {
 }
 
 .sidebar-list-title:after {
-    content: "\25BC"; /* Down arrow */
+    content: "\25BC";
+    /* Down arrow */
     float: right;
     margin-right: 10px;
     transition: transform 0.3s ease;
@@ -155,7 +156,8 @@ h1 {
 
 .sidebar-list:hover .sidebar-list-title:after,
 .sidebar-list:focus-within .sidebar-list-title:after {
-    transform: rotate(-180deg); /* Rotate arrow */
+    transform: rotate(-180deg);
+    /* Rotate arrow to point up */
 }
 
 .sidebar-list-content {
@@ -166,7 +168,7 @@ h1 {
 
 .sidebar-list:hover .sidebar-list-content,
 .sidebar-list:focus-within .sidebar-list-content {
-    max-height: 1000px; /* Adjust as needed */
+    max-height: 1000px;
 }
 
 
