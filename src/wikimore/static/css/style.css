@@ -386,6 +386,55 @@ span {
     display: inline;
 }
 
+/* Side box styling */
+.side-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 10px 0;
+    float: right;
+    width: 300px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    clear: right;
+}
+
+.side-box-right {
+    float: right;
+}
+
+.side-box-flex {
+    display: flex;
+    align-items: center;
+}
+
+.side-box-image {
+    flex: 0 0 auto;
+    margin-right: 10px;
+}
+
+.side-box-image img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.side-box-text {
+    flex: 1 1 auto;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.side-box-text a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.side-box-text a:hover {
+    text-decoration: underline;
+}
+
 /* Media query for devices with a max width of 768px */
 @media (max-width: 768px) {
     #header {
@@ -420,6 +469,13 @@ span {
         max-width: 100%;
         display: block;
         margin: 10px 0;
+    }
+
+    .side-box {
+        max-width: 100%;
+        margin: 10px 0;
+        float: none;
+        clear: none;
     }
 }
 
@@ -464,5 +520,16 @@ span {
     .tmulti {
         max-width: 100%;
         margin: 5px 0;
+    }
+
+    .side-box {
+        max-width: 100%;
+        margin: 5px 0;
+        float: none;
+        clear: none;
+    }
+
+    .side-box-text {
+        font-size: 0.8em;
     }
 }
