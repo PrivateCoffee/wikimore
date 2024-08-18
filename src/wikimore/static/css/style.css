@@ -265,6 +265,11 @@ h1 {
     padding: 10px;
 }
 
+.infobox-above a,
+.infobox-header a {
+    color: white;
+}
+
 .infobox-subheader {
     background-color: #bbddff;
     text-align: center;
