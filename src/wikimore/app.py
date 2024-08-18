@@ -205,7 +205,11 @@ def search_results(project, lang, query):
 
     logger.debug(f"Searching {base_url} for {query}")
 
-    url = f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={query}"
+    srquery = escape(query.replace(" ", "_"), True)
+
+    url = (
+        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
+    )
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
     search_results = data["query"]["search"]
