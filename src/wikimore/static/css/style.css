@@ -329,6 +329,7 @@ figcaption,
 .mw-halign-left,
 .tleft {
     float: left;
+    clear: left;
     margin-right: 1em;
 }
 
@@ -342,13 +343,14 @@ figcaption,
 .mw-halign-right,
 .tright {
     float: right;
+    clear: right;
     margin-left: 1em;
 }
 
 .mw-default-size {
     width: fit-content;
-    float: left;
-    clear: left;
+    float: right;
+    clear: right;
     max-width: 300px;
 }
 
