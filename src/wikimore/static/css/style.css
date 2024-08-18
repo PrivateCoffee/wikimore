@@ -1,9 +1,16 @@
 /* General styling */
+* {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #f8f9fa;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 /* Link styling */
@@ -16,10 +23,11 @@ a {
 #header {
     background-color: #ffffff;
     border-bottom: 1px solid #a2a9b1;
-    padding: 10px;
+    padding: 10px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 #header h1 {
@@ -38,6 +46,17 @@ a {
     padding: 0;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+#search-form input[type="text"],
+#search-form select,
+#search-form button {
+    flex: 1;
+    padding: 5px;
+    margin: 5px;
+    box-sizing: border-box;
 }
 
 #search-form input[type="text"] {
@@ -56,6 +75,7 @@ a {
 /* Content styling */
 #content {
     padding: 20px;
+    overflow-x: hidden;
 }
 
 h1 {
@@ -72,6 +92,10 @@ h1 {
     border: 1px solid #a2a9b1;
     padding: 10px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 10px 0;
 }
 
 .toc {
@@ -108,6 +132,8 @@ h1 {
     max-width: 100%;
     background-color: #f9f9f9;
     border: 1px solid #ddd;
+    display: block;
+    overflow-x: auto;
 }
 
 .table th {
@@ -272,6 +298,11 @@ h1 {
     padding: 10px;
     font-size: small;
     border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    display: flex;
+    flex-direction: column;
+    overflow-x: auto;
 }
 
 .infobox-above {
@@ -354,6 +385,10 @@ figure,
     background-color: #f9f9f9;
     border: 1px solid #ddd;
     display: inline-block;
+    width: 100%;
+    display: block;
+    margin: 10px 0;
+    overflow-x: auto;
 }
 
 figure img,
@@ -410,4 +445,91 @@ figcaption,
 
 span {
     display: inline;
+}
+
+/* Media query for devices with a max width of 768px */
+@media (max-width: 768px) {
+    #header {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #header h1 {
+        margin-bottom: 10px;
+        font-size: 1.2em;
+    }
+
+    #content {
+        padding: 10px;
+    }
+
+    .sidebar {
+        width: 100%;
+        margin: 10px 0;
+        float: none;
+    }
+
+    .table {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .infobox {
+        width: 100%;
+        margin: 10px 0;
+        float: none;
+    }
+
+    figure,
+    .tmulti {
+        width: 100%;
+        display: block;
+        margin: 10px 0;
+    }
+}
+
+/* Media query for devices with a max width of 480px */
+@media (max-width: 480px) {
+    #header {
+        padding: 10px;
+    }
+
+    #header h1 {
+        font-size: 1em;
+    }
+
+    #search-form input[type="text"],
+    #search-form select,
+    #search-form button {
+        padding: 10px;
+    }
+
+    #content {
+        padding: 5px;
+    }
+
+    h1 {
+        font-size: 1.5em;
+    }
+
+    .sidebar {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    .table th,
+    .table td {
+        padding: 5px;
+    }
+
+    .infobox {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    figure,
+    .tmulti {
+        width: 100%;
+        margin: 5px 0;
+    }
 }
