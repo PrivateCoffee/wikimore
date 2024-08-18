@@ -138,7 +138,7 @@ def wiki_article(project, lang, title):
         logger.debug(f"Redirect URL: {destination}")
         return redirect(destination)
 
-    for a in soup.find_all("a", href=True):
+    for a in soup.find_all("a", href=True) + soup.find_all("area", href=True):
         href = a["href"]
 
         if href.startswith("/wiki/"):
