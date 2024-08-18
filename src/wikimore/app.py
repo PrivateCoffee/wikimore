@@ -119,7 +119,7 @@ def wiki_article(project, lang, title):
 
     logger.debug(f"Fetching {title} from {base_url}")
 
-    url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(title.replace(' ', '_'), True)}&prop=revisions&rvprop=content&rvparse=1"
+    url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(title.replace(' ', '_'), False)}&prop=revisions&rvprop=content&rvparse=1"
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
     pages = data["query"]["pages"]
