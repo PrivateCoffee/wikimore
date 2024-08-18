@@ -427,6 +427,10 @@ figcaption,
     margin-left: 1em;
 }
 
+.mw-default-size {
+    width: fit-content;
+}
+
 /* Reference styling */
 .reflist-lower-alpha .references {
     list-style-type: lower-alpha;
