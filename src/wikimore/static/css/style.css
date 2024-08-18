@@ -168,6 +168,14 @@ h1 {
     font-style: italic;
 }
 
+.ambox {
+    margin: 1em 0;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    font-size: small;
+}
+
 /* Navbox styling */
 .navbox {
     padding: 3px;
