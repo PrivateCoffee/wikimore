@@ -154,6 +154,16 @@ h1 {
     display: none;
 }
 
+.hatnote {
+    margin: 1em 0;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    font-size: small;
+    font-style: italic;
+}
+
+/* Navbox styling */
 .navbox {
     padding: 3px;
     background-color: #f9f9f9;
@@ -337,7 +347,8 @@ h1 {
 }
 
 /* Figure styling */
-figure, .tmulti {
+figure,
+.tmulti {
     margin: 1em 0;
     padding: 10px;
     background-color: #f9f9f9;
@@ -345,7 +356,8 @@ figure, .tmulti {
     display: inline-block;
 }
 
-figure img, .tmulti .mw-file-element {
+figure img,
+.tmulti .mw-file-element {
     max-width: 100%;
     height: auto;
     border: 1px solid #ddd;
@@ -355,7 +367,8 @@ figure img, .tmulti .mw-file-element {
     margin-right: auto;
 }
 
-figcaption, .thumbcaption {
+figcaption,
+.thumbcaption {
     margin-top: 10px;
     font-size: small;
     text-align: left;
