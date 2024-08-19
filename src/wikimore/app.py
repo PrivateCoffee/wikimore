@@ -1,9 +1,10 @@
 from flask import (
-    Flask,
     render_template as flask_render_template,
+    Flask,
     request,
     redirect,
     url_for,
+    Response,
 )
 import urllib.request
 from urllib.parse import urlencode, urlparse, quote
@@ -12,6 +13,7 @@ import json
 import os
 import logging
 import pathlib
+from typing import Dict, Union, Tuple, Text
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
@@ -33,7 +35,18 @@ HEADERS = {
 }
 
 
-def get_wikimedia_projects():
+def get_wikimedia_projects() -> (
+    Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]
+):
+    """Fetch Wikimedia projects and languages from the Wikimedia API.
+
+    Returns:
+        Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]: A tuple containing two dictionaries:
+            - The first dictionary maps Wikimedia project codes to project names.
+            - The second dictionary maps language codes to dictionaries containing:
+                - A dictionary mapping Wikimedia project codes to project URLs.
+                - The language name.
+    """
     url = "https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json"
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
@@ -64,8 +77,21 @@ def get_wikimedia_projects():
 
 app.wikimedia_projects, app.languages = get_wikimedia_projects()
 
+logger.debug(
+    f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
+)
 
-def render_template(*args, **kwargs):
+
+def render_template(*args, **kwargs) -> Text:
+    """A wrapper around Flask's `render_template` that adds the `languages` and `wikimedia_projects` context variables.
+
+    Args:
+        *args: Positional arguments to pass to `flask.render_template`.
+        **kwargs: Keyword arguments to pass to `flask.render_template`.
+
+    Returns:
+        Text: The rendered template.
+    """
     return flask_render_template(
         *args,
         **kwargs,
@@ -74,7 +100,18 @@ def render_template(*args, **kwargs):
     )
 
 
-def get_proxy_url(url):
+def get_proxy_url(url: str) -> str:
+    """Generate a proxy URL for a given URL.
+
+    Will only generate a proxy URL for URLs that are on Wikimedia Commons or Wikimedia Maps.
+    For other URLs, the original URL is returned.
+
+    Args:
+        url (str): The URL to generate a proxy URL for.
+
+    Returns:
+        str: The proxy URL, or the original URL if it should not be proxied.
+    """
     if url.startswith("//"):
         url = "https:" + url
 
@@ -89,7 +126,12 @@ def get_proxy_url(url):
 
 
 @app.route("/proxy")
-def proxy():
+def proxy() -> bytes:
+    """A simple proxy for Wikimedia Commons and Wikimedia Maps URLs.
+
+    Returns:
+        bytes: The content of the proxied URL.
+    """
     url = request.args.get("url")
 
     if not url or not (
@@ -107,12 +149,24 @@ def proxy():
 
 
 @app.route("/")
-def home():
+def home() -> Text:
+    """Renders the home page.
+
+    Returns:
+        Text: The rendered home page.
+    """
     return render_template("home.html")
 
 
 @app.route("/search", methods=["GET", "POST"])
-def search():
+def search() -> Union[Text, Response]:
+    """Renders the search page.
+
+    If a search query is submitted, redirects to the search results page.
+
+    Returns:
+        str|Response: The rendered search page, or a redirect to the search results page.
+    """
     if request.method == "POST":
         query = request.form["query"]
         lang = request.form["lang"]
@@ -124,7 +178,21 @@ def search():
 
 
 @app.route("/<project>/<lang>/wiki/<path:title>")
-def wiki_article(project, lang, title):
+def wiki_article(
+    project: str, lang: str, title: str
+) -> Union[Text, Response, Tuple[Text, int]]:
+    """Fetches and renders a Wikimedia article.
+
+    Handles redirects and links to other Wikimedia projects, and proxies images and videos.
+
+    Args:
+        project (str): The Wikimedia project code.
+        lang (str): The language code.
+        title (str): The article title.
+
+    Returns:
+        str|Response|Tuple[str, int]: The rendered article, a redirect to another article, or an error message with a status code.
+    """
     language_projects = app.languages.get(lang, {}).get("projects", {})
     base_url = language_projects.get(project)
 
@@ -258,7 +326,20 @@ def wiki_article(project, lang, title):
 
 
 @app.route("/<project>/<lang>/search/<query>")
-def search_results(project, lang, query):
+def search_results(
+    project: str, lang: str, query: str
+) -> Union[Text, Tuple[Text, int]]:
+    """Retrieve search results from a Wikimedia project.
+
+    Args:
+        project (str): The Wikimedia project code.
+        lang (str): The language code.
+        query (str): The search query.
+
+    Returns:
+        str|Tuple[str, int]: The rendered search results, or an error message with a status code.
+    """
+
     language_projects = app.languages.get(lang, {}).get("projects", {})
     base_url = language_projects.get(project)
 
@@ -292,17 +373,31 @@ def search_results(project, lang, query):
 
 
 @app.route("/<project>/<lang>/wiki/Special:Search/<query>")
-def search_redirect(project, lang, query):
+def search_redirect(project: str, lang: str, query: str) -> Response:
+    """Redirects to the search results page.
+
+    Args:
+        project (str): The Wikimedia project code.
+        lang (str): The language code.
+        query (str): The search query.
+
+    Returns:
+        Response: A redirect to the search results page.
+    """
     return redirect(url_for("search_results", project=project, lang=lang, query=query))
 
 
-logger.debug(
-    f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
-)
-
-
 @app.route("/<project>/<lang>/w/index.php")
-def index_php_redirect(project, lang):
+def index_php_redirect(project, lang) -> Response:
+    """Redirects to the main page of a Wikimedia project.
+
+    Args:
+        project (str): The Wikimedia project code.
+        lang (str): The language code.
+
+    Returns:
+        Response: A redirect to the main page of the Wikimedia project.
+    """
     # TODO: Handle query string
 
     url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
@@ -316,6 +411,7 @@ def index_php_redirect(project, lang):
 
 
 def main():
+    """Start the Flask app."""
     port = int(os.environ.get("PORT", 8109))
     host = os.environ.get("HOST", "0.0.0.0")
     debug = os.environ.get("DEBUG", False)
