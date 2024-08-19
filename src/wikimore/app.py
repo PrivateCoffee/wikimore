@@ -22,6 +22,10 @@ logger.addHandler(handler)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
+HEADERS = {
+    "User-Agent": "Wikimore/dev (https://git.private.coffee/privatecoffee/wikimore)"
+}
+
 
 def get_wikimedia_projects():
     url = "https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json"
@@ -119,26 +123,21 @@ def wiki_article(project, lang, title):
 
     logger.debug(f"Fetching {title} from {base_url}")
 
-    url = f"{base_url}/w/api.php?action=query&format=json&titles={quote(escape(title.replace(' ', '_'), False))}&prop=revisions&rvprop=content&rvparse=1"
-    with urllib.request.urlopen(url) as response:
-        data = json.loads(response.read().decode())
-    pages = data["query"]["pages"]
+    api_request = urllib.request.Request(
+        f"{base_url}/api/rest_v1/page/html/{quote(escape(title.replace(' ', '_'), False))}",
+        headers=HEADERS,
+    )
 
-    try:
-        article_html = next(iter(pages.values()))["revisions"][0]["*"]
-    except KeyError:
-        return (
-            render_template(
-                "article.html",
-                title=title.replace("_", " "),
-                content="Article not found",
-                wikimedia_projects=app.wikimedia_projects,
-                languages=app.languages,
-            ),
-            404,
-        )
+    if request.args.get("variant", None):
+        api_request.add_header("Accept-Language", f"{request.args['variant']}")
+
+    with urllib.request.urlopen(api_request) as response:
+        article_html = response.read().decode()
 
     soup = BeautifulSoup(article_html, "html.parser")
+
+    body = soup.find("body")
+    body.name = "div"
 
     redirect_message = soup.find("div", class_="redirectMsg")
 
@@ -203,7 +202,7 @@ def wiki_article(project, lang, title):
         if any(cls in li.get("class", []) for cls in ["nv-view", "nv-talk", "nv-edit"]):
             li.decompose()
 
-    processed_html = str(soup)
+    processed_html = str(body)
     return render_template(
         "article.html",
         title=title.replace("_", " "),
@@ -226,12 +225,10 @@ def search_results(project, lang, query):
 
     srquery = quote(escape(query.replace(" ", "_"), True))
 
-    url = (
-        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
-    )
+    url = f"{base_url}/api/rest_v1/page/search/{srquery}"
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
-    search_results = data["query"]["search"]
+    search_results = data["pages"]
     return render_template(
         "search_results.html",
         query=query,
