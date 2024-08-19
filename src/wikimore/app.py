@@ -225,10 +225,12 @@ def search_results(project, lang, query):
 
     srquery = quote(escape(query.replace(" ", "_"), True))
 
-    url = f"{base_url}/api/rest_v1/page/search/{srquery}"
+    url = (
+        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
+    )
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
-    search_results = data["pages"]
+    search_results = data["query"]["search"]
     return render_template(
         "search_results.html",
         query=query,
