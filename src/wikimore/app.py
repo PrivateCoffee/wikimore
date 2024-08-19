@@ -241,11 +241,19 @@ def wiki_article(project, lang, title):
             li.decompose()
 
     processed_html = str(body)
+
+    rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))
+
+    # Edge case: When passing the `ku-arab` variant, the article is in Arabic
+    # script but the direction returned in the API response is still LTR.
+    if request.args.get("variant") == "ku-arab":
+        rtl = True
+
     return render_template(
         "article.html",
         title=title.replace("_", " "),
         content=processed_html,
-        rtl=bool(soup.find("div", class_="mw-parser-output", dir="rtl")),
+        rtl=rtl,
     )
 
 
