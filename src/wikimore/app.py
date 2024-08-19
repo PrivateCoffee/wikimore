@@ -127,13 +127,16 @@ def wiki_article(project, lang, title):
     try:
         article_html = next(iter(pages.values()))["revisions"][0]["*"]
     except KeyError:
-        return render_template(
-            "article.html",
-            title=title.replace("_", " "),
-            content="Article not found",
-            wikimedia_projects=app.wikimedia_projects,
-            languages=app.languages,
-        ), 404
+        return (
+            render_template(
+                "article.html",
+                title=title.replace("_", " "),
+                content="Article not found",
+                wikimedia_projects=app.wikimedia_projects,
+                languages=app.languages,
+            ),
+            404,
+        )
 
     soup = BeautifulSoup(article_html, "html.parser")
 
@@ -166,7 +169,9 @@ def wiki_article(project, lang, title):
 
                 found = False
                 for language, language_projects in app.languages.items():
-                    for project_name, project_url in language_projects["projects"].items():
+                    for project_name, project_url in language_projects[
+                        "projects"
+                    ].items():
                         if project_url == target_domain:
                             a["href"] = url_for(
                                 "wiki_article",
@@ -205,6 +210,7 @@ def wiki_article(project, lang, title):
         content=processed_html,
         wikimedia_projects=app.wikimedia_projects,
         languages=app.languages,
+        rtl=bool(soup.find("div", class_="mw-parser-output", dir="rtl")),
     )
 
 

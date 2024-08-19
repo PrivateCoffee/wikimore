@@ -53,6 +53,10 @@ a.new::after {
     color: #333;
 }
 
+.title-rtl {
+    direction: rtl;
+}
+
 /* Search styling */
 #search-form {
     margin: 0;
@@ -95,6 +99,11 @@ h1 {
 }
 
 /* General sidebar styling */
+.mw-content-rtl .sidebar {
+    float: left;
+    clear: left;
+}
+
 .sidebar {
     background-color: #f9f9f9;
     border: 1px solid #ddd;
@@ -325,6 +334,11 @@ h1 {
 }
 
 /* Sidebar styling */
+.mw-content-rtl .infobox {
+    float: left;
+    clear: left;
+}
+
 .infobox {
     float: right;
     margin: 1em;
