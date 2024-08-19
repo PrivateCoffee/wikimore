@@ -23,6 +23,15 @@ a:hover {
     text-decoration: underline;
 }
 
+a.new {
+    color: #ba0000;
+}
+
+a.new::after {
+    content: " (page does not exist)";
+    font-size: 0.8em;
+}
+
 /* Header styling */
 #header {
     background-color: #ffffff;
