@@ -155,21 +155,24 @@ def wiki_article(project, lang, title):
             a["href"] = f"/{project}/{lang}{href}"
 
         elif href.startswith("//") or href.startswith("https://"):
+            print(f"Checking {href}")
             parts = urlparse(href)
 
-            target_domain = parts.netloc
+            target_domain = f"https://{parts.netloc}"
             path_parts = parts.path.split("/")
 
-            if len(path_parts) > 4:
-                target_title = "/".join(path_parts[4:])
-                target_lang = target_domain.split(".")[0]
+            if len(path_parts) >= 3:
+                target_title = "/".join(path_parts[2:])
 
                 found = False
                 for language, language_projects in app.languages.items():
-                    for project_name, project_url in language_projects.items():
-                        if target_domain == project_url:
-                            a["href"] = (
-                                f"/{project_name}/{target_lang}/wiki/{target_title}"
+                    for project_name, project_url in language_projects["projects"].items():
+                        if project_url == target_domain:
+                            a["href"] = url_for(
+                                "wiki_article",
+                                project=project_name,
+                                lang=language,
+                                title=target_title,
                             )
                             found = True
                             break
