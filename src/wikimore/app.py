@@ -148,8 +148,29 @@ def wiki_article(project, lang, title):
     if request.args.get("variant", None):
         api_request.add_header("Accept-Language", f"{request.args['variant']}")
 
-    with urllib.request.urlopen(api_request) as response:
-        article_html = response.read().decode()
+    try:
+        with urllib.request.urlopen(api_request) as response:
+            article_html = response.read().decode()
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return (
+                render_template(
+                    "article.html",
+                    title="Article not found",
+                    content=f"Sorry, the article {title} was not found in the {project} project in the {lang} language.",
+                ),
+                404,
+            )
+        else:
+            logger.error(f"Error fetching article {title} from {lang}.{project}: {e}")
+            return (
+                render_template(
+                    "article.html",
+                    title="Error",
+                    content=f"An error occurred while fetching the article {title} from the {project} project in the {lang} language.",
+                ),
+                500,
+            )
 
     soup = BeautifulSoup(article_html, "html.parser")
 
