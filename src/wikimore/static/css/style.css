@@ -206,6 +206,12 @@ h1 {
     text-align: center;
 }
 
+.category-link {
+    display: inline;
+    margin-right: 5px;
+    font-size: 0.8em;
+}
+
 /* General table styling */
 .table {
     margin: 1em auto;

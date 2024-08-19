@@ -315,6 +315,11 @@ def wiki_article(
     for video in soup.find_all("video"):
         video["poster"] = get_proxy_url(video["poster"])
 
+    for link in soup.find_all("link", rel="mw:PageProp/Category"):
+        link.name = "a"
+        link.string = link["href"][2:].replace("_", " ")
+        link["class"] = "category-link"
+
     for li in soup.find_all("li"):
         if any(cls in li.get("class", []) for cls in ["nv-view", "nv-talk", "nv-edit"]):
             li.decompose()
