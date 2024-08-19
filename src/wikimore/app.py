@@ -171,6 +171,17 @@ def search() -> Union[Text, Response]:
         query = request.form["query"]
         lang = request.form["lang"]
         project = request.form["project"]
+
+        if not lang or not project:
+            return render_template(
+                "article.html",
+                title="Error",
+                content="Please select a language and a project.",
+            )
+
+        if not query:
+            return redirect(url_for("index_php_redirect", project=project, lang=lang))
+
         return redirect(
             url_for("search_results", project=project, lang=lang, query=query)
         )
@@ -400,7 +411,16 @@ def index_php_redirect(project, lang) -> Response:
     """
     # TODO: Handle query string
 
-    url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
+    try:
+        url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
+    except KeyError:
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, the project {project} does not exist in the {lang} language.",
+            ),
+        )
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
     main_page = data["query"]["general"]["mainpage"]
