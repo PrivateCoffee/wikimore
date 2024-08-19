@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 import urllib.request
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse, quote
 from html import escape
 import json
 import os
@@ -119,11 +119,21 @@ def wiki_article(project, lang, title):
 
     logger.debug(f"Fetching {title} from {base_url}")
 
-    url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(title.replace(' ', '_'), False)}&prop=revisions&rvprop=content&rvparse=1"
+    url = f"{base_url}/w/api.php?action=query&format=json&titles={quote(escape(title.replace(' ', '_'), False))}&prop=revisions&rvprop=content&rvparse=1"
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
     pages = data["query"]["pages"]
-    article_html = next(iter(pages.values()))["revisions"][0]["*"]
+
+    try:
+        article_html = next(iter(pages.values()))["revisions"][0]["*"]
+    except KeyError:
+        return render_template(
+            "article.html",
+            title=title.replace("_", " "),
+            content="Article not found",
+            wikimedia_projects=app.wikimedia_projects,
+            languages=app.languages,
+        ), 404
 
     soup = BeautifulSoup(article_html, "html.parser")
 
@@ -205,7 +215,7 @@ def search_results(project, lang, query):
 
     logger.debug(f"Searching {base_url} for {query}")
 
-    srquery = escape(query.replace(" ", "_"), True)
+    srquery = quote(escape(query.replace(" ", "_"), True))
 
     url = (
         f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
