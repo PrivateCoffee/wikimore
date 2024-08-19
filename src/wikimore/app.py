@@ -293,6 +293,20 @@ logger.debug(
 )
 
 
+@app.route("/<project>/<lang>/w/index.php")
+def index_php_redirect(project, lang):
+    # TODO: Handle query string
+
+    url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
+    with urllib.request.urlopen(url) as response:
+        data = json.loads(response.read().decode())
+    main_page = data["query"]["general"]["mainpage"]
+
+    return redirect(
+        url_for("wiki_article", project=project, lang=lang, title=main_page)
+    )
+
+
 def main():
     port = int(os.environ.get("PORT", 8109))
     host = os.environ.get("HOST", "0.0.0.0")
