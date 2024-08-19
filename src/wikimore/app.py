@@ -1,4 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import (
+    Flask,
+    render_template as flask_render_template,
+    request,
+    redirect,
+    url_for,
+)
 import urllib.request
 from urllib.parse import urlencode, urlparse, quote
 from html import escape
@@ -56,6 +62,18 @@ def get_wikimedia_projects():
     return projects, languages
 
 
+app.wikimedia_projects, app.languages = get_wikimedia_projects()
+
+
+def render_template(*args, **kwargs):
+    return flask_render_template(
+        *args,
+        **kwargs,
+        languages=app.languages,
+        wikimedia_projects=app.wikimedia_projects,
+    )
+
+
 def get_proxy_url(url):
     if url.startswith("//"):
         url = "https:" + url
@@ -90,11 +108,7 @@ def proxy():
 
 @app.route("/")
 def home():
-    return render_template(
-        "home.html",
-        wikimedia_projects=app.wikimedia_projects,
-        languages=app.languages,
-    )
+    return render_template("home.html")
 
 
 @app.route("/search", methods=["GET", "POST"])
@@ -106,11 +120,7 @@ def search():
         return redirect(
             url_for("search_results", project=project, lang=lang, query=query)
         )
-    return render_template(
-        "search.html",
-        wikimedia_projects=app.wikimedia_projects,
-        languages=app.languages,
-    )
+    return render_template("search.html")
 
 
 @app.route("/<project>/<lang>/wiki/<path:title>")
@@ -119,7 +129,14 @@ def wiki_article(project, lang, title):
     base_url = language_projects.get(project)
 
     if not base_url:
-        return "Invalid language or project"
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, the project {project} does not exist in the {lang} language.",
+            ),
+            404,
+        )
 
     logger.debug(f"Fetching {title} from {base_url}")
 
@@ -207,8 +224,6 @@ def wiki_article(project, lang, title):
         "article.html",
         title=title.replace("_", " "),
         content=processed_html,
-        wikimedia_projects=app.wikimedia_projects,
-        languages=app.languages,
         rtl=bool(soup.find("div", class_="mw-parser-output", dir="rtl")),
     )
 
@@ -219,7 +234,14 @@ def search_results(project, lang, query):
     base_url = language_projects.get(project)
 
     if not base_url:
-        return "Invalid language or project"
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, the project {project} does not exist in the {lang} language.",
+            ),
+            404,
+        )
 
     logger.debug(f"Searching {base_url} for {query}")
 
@@ -237,8 +259,6 @@ def search_results(project, lang, query):
         search_results=search_results,
         project=project,
         lang=lang,
-        wikimedia_projects=app.wikimedia_projects,
-        languages=app.languages,
     )
 
 
@@ -246,8 +266,6 @@ def search_results(project, lang, query):
 def search_redirect(project, lang, query):
     return redirect(url_for("search_results", project=project, lang=lang, query=query))
 
-
-app.wikimedia_projects, app.languages = get_wikimedia_projects()
 
 logger.debug(
     f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
