@@ -206,10 +206,21 @@ h1 {
     text-align: center;
 }
 
-.category-link {
+section > .category-link {
     display: inline;
-    margin-right: 5px;
     font-size: 0.8em;
+}
+
+section > .category-link::before {
+    content: "[";
+}
+
+section > .category-link::after {
+    content: "]";
+}
+
+.category-link {
+    display: none;
 }
 
 /* General table styling */
@@ -351,7 +362,6 @@ h1 {
     width: 300px;
     background-color: #f9f9f9;
     border: 1px solid #ddd;
-    padding: 10px;
     font-size: small;
     border-collapse: collapse;
     max-width: 100%;
@@ -407,6 +417,23 @@ h1 {
     margin-top: 5px;
 }
 
+.infobox-image .mw-default-size,
+.infobox-signature .mw-file-element {
+    max-width: 300px;
+    height: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    float: unset;
+}
+
+.infobox-caption {
+    text-align: center;
+    font-style: italic;
+    margin-top: 5px;
+    display: block;
+}
+
 /* Figure styling */
 figure,
 .tmulti,
@@ -452,7 +479,7 @@ figcaption,
 }
 
 .mw-halign-center {
-    display: block;
+    display: flex;
     margin-left: auto;
     margin-right: auto;
     text-align: center;
@@ -538,6 +565,14 @@ span {
 
 .side-box-text a:hover {
     text-decoration: underline;
+}
+
+/* Media query for larger devices */
+@media (min-width: 769px) {
+    #content {
+        padding-left: 5em;
+        padding-right: 5em;
+    }
 }
 
 /* Media query for devices with a max width of 768px */
