@@ -92,6 +92,9 @@ def render_template(*args, **kwargs) -> Text:
     Returns:
         Text: The rendered template.
     """
+    kwargs.setdefault("lang", "en")
+    kwargs.setdefault("project", "wiki")
+
     return flask_render_template(
         *args,
         **kwargs,
@@ -237,6 +240,8 @@ def wiki_article(
                     "article.html",
                     title="Article not found",
                     content=f"Sorry, the article {title} was not found in the {project} project in the {lang} language.",
+                    lang=lang,
+                    project=project,
                 ),
                 404,
             )
@@ -247,6 +252,8 @@ def wiki_article(
                     "article.html",
                     title="Error",
                     content=f"An error occurred while fetching the article {title} from the {project} project in the {lang} language.",
+                    lang=lang,
+                    project=project,
                 ),
                 500,
             )
@@ -274,7 +281,6 @@ def wiki_article(
             a["href"] = f"/{project}/{lang}{href}"
 
         elif href.startswith("//") or href.startswith("https://"):
-            print(f"Checking {href}")
             parts = urlparse(href)
 
             target_domain = f"https://{parts.netloc}"
@@ -337,6 +343,8 @@ def wiki_article(
         "article.html",
         title=title.replace("_", " "),
         content=processed_html,
+        lang=lang,
+        project=project,
         rtl=rtl,
     )
 

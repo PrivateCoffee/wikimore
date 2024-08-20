@@ -12,12 +12,12 @@
         <form id="search-form" action="{{ url_for('search') }}" method="post">
             <select name="project" id="project">
             {% for key, value in wikimedia_projects.items() %}
-                <option value="{{ key }}">{{ value }}</option>
+                <option {% if key == project %}selected="selected"{% endif %} value="{{ key }}">{{ value }}</option>
             {% endfor %}
             </select>
             <select name="lang" id="lang">
             {% for key, value in languages.items() %}
-                <option {% if key == "en" %}selected="selected"{% endif %} value="{{ key }}">{{ value["name"] }}</option>
+                <option {% if key == lang %}selected="selected"{% endif %} value="{{ key }}">{{ value["name"] }}</option>
             {% endfor %}
             </select>
             <input type="text" name="query" id="query" placeholder="Search Wikipedia">
