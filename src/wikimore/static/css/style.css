@@ -359,7 +359,8 @@ section > .category-link::after {
 .infobox {
     float: right;
     margin: 1em;
-    width: 300px;
+    min-width: 300px;
+    width: fit-content !important;
     background-color: #f9f9f9;
     border: 1px solid #ddd;
     font-size: small;
@@ -499,6 +500,14 @@ figcaption,
     max-width: 300px;
 }
 
+.mw-file-element {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+    height: auto;
+}
+
 /* Reference styling */
 .reflist-lower-alpha .references {
     list-style-type: lower-alpha;
@@ -525,7 +534,7 @@ span {
     padding: 10px;
     margin: 10px 0;
     float: right;
-    width: 300px;
+    min-width: 300px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
