@@ -751,6 +751,159 @@ span {
     }
 }
 
+/* General styling for Wikisource index container */
+#ws-index-container {
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#ws-index-main-cell {
+    vertical-align: top;
+    padding: 20px;
+}
+
+#ws-index-main-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#ws-index-cover-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#ws-index-cover-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+#ws-index-metadata {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+}
+
+.ws-index-row {
+    border-bottom: 1px solid #ddd;
+}
+
+.ws-index-label {
+    background-color: #f2f2f2;
+    text-align: left;
+    font-weight: bold;
+    padding: 10px;
+    width: 30%;
+}
+
+.ws-index-value {
+    padding: 10px;
+    text-align: left;
+}
+
+.ws-index-value a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.ws-index-value a:hover {
+    text-decoration: underline;
+}
+
+/* Styling for collapsible sections */
+.mw-collapsible {
+    margin-top: 20px;
+}
+
+.mw-collapsible em {
+    font-weight: bold;
+}
+
+#index-pagelist-legend {
+    font-size: 0.9em;
+    color: #555;
+}
+
+.index-pagelist {
+    margin-top: 10px;
+}
+
+.index-pagelist a {
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    text-decoration: none;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.index-pagelist a:hover {
+    background-color: #e9e9e9;
+}
+
+.prp-index-pagelist-page {
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    text-decoration: none;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.prp-index-pagelist-page:hover {
+    background-color: #e9e9e9;
+}
+
+/* Styling for Wikisource remarks section */
+#ws-index-remarks {
+    padding: 20px;
+    border-left: 1px solid #ddd;
+    vertical-align: top;
+}
+
+.wst-center {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.wst-center p {
+    margin: 0;
+}
+
+.toc_list {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.toc_list td {
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+.wst-rule {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 10px 0;
+}
+
+.wst-rule-center {
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.__nop {
+    display: none;
+}
+
 /* Media query for devices with a max width of 768px */
 @media (max-width: 768px) {
     #header {
@@ -806,6 +959,21 @@ span {
 
     .mw-gallery-packed .thumb {
         max-width: 100%;
+    }
+
+    #ws-index-container {
+        padding: 10px;
+    }
+
+    #ws-index-main-cell,
+    #ws-index-remarks {
+        padding: 10px;
+    }
+
+    #ws-index-remarks {
+        border-left: none;
+        border-top: 1px solid #ddd;
+        margin-top: 20px;
     }
 }
 
