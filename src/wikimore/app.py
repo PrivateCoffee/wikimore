@@ -263,14 +263,9 @@ def wiki_article(
     body = soup.find("body")
 
     if not body:
-        return (
-            render_template(
-                "article.html",
-                title="Error",
-                content="An error occurred while fetching the article.",
-            ),
-            500,
-        )
+        article_html = f"<div class='mw-body-content parsoid-body mediawiki mw-parser-output'>{article_html}</div>"
+        soup = BeautifulSoup(article_html, "html.parser")
+        body = soup.find("div", class_="mw-body-content")
 
     body.name = "div"
 
