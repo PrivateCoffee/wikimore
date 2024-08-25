@@ -567,7 +567,7 @@ figure,
     background-color: #f9f9f9;
     border: 1px solid #ddd;
     max-width: 100%;
-    display: block;
+    display: inline-block;
     overflow-x: auto;
     width: fit-content;
 }
