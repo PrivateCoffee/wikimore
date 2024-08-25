@@ -287,6 +287,11 @@ section > .category-link::after {
     font-size: small;
 }
 
+.listing-metadata {
+    font-size: 0.8em;
+    color: #555;
+}
+
 /* Navbox styling */
 .navbox {
     padding: 3px;
