@@ -206,16 +206,16 @@ h1 {
     text-align: center;
 }
 
-section > .category-link {
+section>.category-link {
     display: inline;
     font-size: 0.8em;
 }
 
-section > .category-link::before {
+section>.category-link::before {
     content: "[";
 }
 
-section > .category-link::after {
+section>.category-link::after {
     content: "]";
 }
 
@@ -291,6 +291,124 @@ section > .category-link::after {
     font-size: 0.8em;
     color: #555;
 }
+
+/* Evolution charts styling */
+.clade {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.clade p {
+    font-size: inherit;
+}
+
+.clade {
+    border-spacing: 0;
+    margin: 0;
+    font-size: 100%;
+    line-height: 100%;
+    border-collapse: separate;
+    width: auto;
+}
+
+.clade .clade {
+    width: 100%;
+    line-height: inherit;
+}
+
+.clade .clade-label {
+    min-width: 0.2em;
+    width: 0.1em;
+    padding: 0.1em 0.15em;
+    vertical-align: bottom;
+    text-align: center;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    white-space: nowrap;
+}
+
+.clade .clade-label::before,
+.clade .clade-slabel::before {
+    content: "\2060 ";
+}
+
+.clade .clade-fixed-width {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.clade .clade-fixed-width:hover {
+    overflow: visible;
+}
+
+.clade .clade-label.first {
+    border-left: none;
+    border-right: none;
+}
+
+.clade .clade-label.reverse {
+    border-left: none;
+    border-right: 1px solid;
+}
+
+.clade .clade-slabel {
+    padding: 0 0.15em;
+    vertical-align: top;
+    text-align: center;
+    border-left: 1px solid;
+    white-space: nowrap;
+}
+
+.clade .clade-slabel:hover {
+    overflow: visible;
+}
+
+.clade .clade-slabel.last {
+    border-left: none;
+    border-right: none;
+}
+
+.clade .clade-slabel.reverse {
+    border-left: none;
+    border-right: 1px solid;
+}
+
+.clade .clade-bar {
+    vertical-align: middle;
+    text-align: left;
+    padding: 0 0.5em;
+    position: relative;
+}
+
+.clade .clade-bar.reverse {
+    text-align: right;
+    position: relative;
+}
+
+.clade .clade-leaf {
+    border: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.clade .clade-leafR {
+    border: 0;
+    padding: 0;
+    text-align: right;
+}
+
+.clade .clade-leaf.reverse {
+    text-align: right;
+}
+
+.linkA {
+    background-color: yellow;
+}
+
+.linkB {
+    background-color: green;
+}
+
 
 /* Navbox styling */
 .navbox {
@@ -506,11 +624,55 @@ figcaption,
 }
 
 .mw-file-element {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
     max-width: 100%;
     height: auto;
+}
+
+/* General styling for gallery */
+.mw-gallery-packed {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0;
+    list-style-type: none;
+    margin: 0;
+}
+
+.mw-gallery-packed .gallerybox {
+    margin: 5px;
+    flex: 0 1 auto;
+}
+
+.mw-gallery-packed .thumb {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 5px;
+    text-align: center;
+}
+
+.mw-gallery-packed .thumb img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.mw-gallery-packed .gallerytext {
+    text-align: center;
+    font-size: 0.9em;
+    padding: 5px;
+}
+
+.mw-gallery-packed .gallerytext i {
+    font-style: italic;
+}
+
+.mw-gallery-packed .gallerytext a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.mw-gallery-packed .gallerytext a:hover {
+    text-decoration: underline;
 }
 
 /* Reference styling */
@@ -630,6 +792,20 @@ span {
         margin: 10px 0;
         float: none;
         clear: none;
+    }
+
+    .mw-gallery-packed {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .mw-gallery-packed .gallerybox {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .mw-gallery-packed .thumb {
+        max-width: 100%;
     }
 }
 
