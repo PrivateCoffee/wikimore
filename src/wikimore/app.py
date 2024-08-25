@@ -261,6 +261,17 @@ def wiki_article(
     soup = BeautifulSoup(article_html, "html.parser")
 
     body = soup.find("body")
+
+    if not body:
+        return (
+            render_template(
+                "article.html",
+                title="Error",
+                content="An error occurred while fetching the article.",
+            ),
+            500,
+        )
+
     body.name = "div"
 
     redirect_message = soup.find("div", class_="redirectMsg")
