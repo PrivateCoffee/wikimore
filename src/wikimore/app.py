@@ -336,6 +336,11 @@ def wiki_article(
         if any(cls in li.get("class", []) for cls in ["nv-view", "nv-talk", "nv-edit"]):
             li.decompose()
 
+    for span in soup.find_all(class_="mw-reflink-text"):
+        parent = span.parent
+        if parent.attrs.get("data-mw-group", None):
+            span["class"] = span.get("class", []) + [parent.attrs["data-mw-group"]]
+
     processed_html = str(body)
 
     rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))

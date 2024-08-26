@@ -919,6 +919,40 @@ Currently blocked by implementation of comments retrieval in the backend
 }
 */
 
+/* Footnote weirdness */
+.mw-reflink-text.lower-alpha::before {
+    content: "[" counter(mw-Ref, lower-alpha) "]";
+}
+
+.mw-reflink-text.upper-alpha::before {
+    display: inline;
+    content: "[" counter(mw-Ref, upper-alpha) "]";
+}
+
+.mw-reflink-text.lower-roman::before {
+    content: "[" counter(mw-Ref, lower-roman) "]";
+}
+
+.mw-reflink-text.upper-roman::before {
+    content: "[" counter(mw-Ref, upper-roman) "]";
+}
+
+.mw-reflink-text.decimal::before {
+    content: "[" counter(mw-Ref, decimal) "]";;
+}
+
+.mw-reflink-text::before {
+    font-size: 1rem;
+}
+
+.mw-reflink-text.lower-alpha,
+.mw-reflink-text.upper-alpha,
+.mw-reflink-text.lower-roman,
+.mw-reflink-text.upper-roman,
+.mw-reflink-text.decimal {
+    font-size: 0;
+}
+
 /* Media query for devices with a max width of 768px */
 @media (max-width: 768px) {
     #header {
