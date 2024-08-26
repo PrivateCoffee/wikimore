@@ -206,7 +206,7 @@ h1 {
     text-align: center;
 }
 
-section>.category-link {
+section:last-child>.category-link {
     display: inline;
     font-size: 0.8em;
 }
