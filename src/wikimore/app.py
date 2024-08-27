@@ -27,6 +27,9 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
 
+# Remove the default Flask logger
+app.logger.removeHandler(app.logger.handlers[0])
+
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
