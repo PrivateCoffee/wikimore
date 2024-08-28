@@ -938,7 +938,8 @@ Currently blocked by implementation of comments retrieval in the backend
 }
 
 .mw-reflink-text.decimal::before {
-    content: "[" counter(mw-Ref, decimal) "]";;
+    content: "[" counter(mw-Ref, decimal) "]";
+    ;
 }
 
 .mw-reflink-text::before {
@@ -951,6 +952,146 @@ Currently blocked by implementation of comments retrieval in the backend
 .mw-reflink-text.upper-roman,
 .mw-reflink-text.decimal {
     font-size: 0;
+}
+
+/* Wikidata content styling */
+.wikibase-entityview-main {
+    display: flex;
+    flex-direction: column;
+}
+
+.wikibase-entitytermsview-heading {
+    margin-bottom: 20px;
+}
+
+.wikibase-entitytermsview-heading-description {
+    font-size: 1.1em;
+    color: #333;
+}
+
+.wikibase-entitytermsview-heading-aliases {
+    font-size: 0.9em;
+    color: #555;
+}
+
+.wikibase-entitytermsview-aliases-alias {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.wikibase-toolbar-container {
+    margin-top: 10px;
+}
+
+.wikibase-toolbar-button-edit {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.wikibase-statementgrouplistview {
+    margin-top: 20px;
+}
+
+.wikibase-statementgroupview {
+    margin-bottom: 20px;
+}
+
+.wikibase-statementgroupview-property-label {
+    font-weight: bold;
+    color: #333;
+}
+
+.wikibase-statementlistview {
+    margin-top: 10px;
+}
+
+.wikibase-statementview {
+    border-top: 1px solid #ddd;
+    padding: 10px 0;
+}
+
+.wikibase-statementview-mainsnak {
+    display: flex;
+    align-items: center;
+}
+
+.wikibase-snakview-property-container {
+    margin-right: 10px;
+}
+
+.wikibase-snakview-value-container {
+    flex: 1;
+}
+
+.wikibase-snakview-value a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.wikibase-snakview-value a:hover {
+    text-decoration: underline;
+}
+
+.wikibase-statementview-references-container {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+}
+
+.wikibase-statementview-references-heading {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.wikibase-statementview-references {
+    font-size: 0.9em;
+}
+
+.wikibase-statementview-references a {
+    color: #1e90ff;
+}
+
+.wikibase-sitelinkgrouplistview {
+    margin-top: 20px;
+}
+
+.wikibase-sitelinkgroupview-heading-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.wikibase-sitelinkgroupview-heading {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.wikibase-sitelinkview {
+    margin: 5px 0;
+}
+
+.wikibase-sitelinkview-siteid {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.wikibase-sitelinkview-link a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.wikibase-sitelinkview-link a:hover {
+    text-decoration: underline;
+}
+
+.wikibase-sitelinkgroupview-counter {
+    margin-left: 1em;
+}
+
+.wikibase-toolbar-container,
+.wikibase-entitytermsview-entitytermsforlanguagelistview {
+    display: none;
 }
 
 /* Media query for devices with a max width of 768px */

@@ -51,8 +51,21 @@ def get_wikimedia_projects() -> (
                 - The language name.
     """
     url = "https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json"
-    with urllib.request.urlopen(url) as response:
-        data = json.loads(response.read().decode())
+    with urllib.request.urlopen(url, timeout=30) as response:
+        try:
+            data = json.loads(response.read().decode())
+        except json.JSONDecodeError as e:
+            logger.fatal("Error decoding JSON response")
+            raise
+        except urllib.error.HTTPError as e:
+            logger.fatal(f"HTTP error fetching Wikimedia projects and languages: {e}")
+            raise
+        except urllib.error.URLError as e:
+            logger.fatal(f"URL error fetching Wikimedia projects and languages: {e}")
+            raise
+        except Exception as e:
+            logger.fatal("Error fetching Wikimedia projects and languages")
+            raise
 
     projects = {}
     languages = {}
@@ -74,6 +87,30 @@ def get_wikimedia_projects() -> (
                     "projects": language_projects,
                     "name": language,
                 }
+
+    languages["special"] = {
+        "projects": {},
+        "name": "Special",
+    }
+
+    for special in data["sitematrix"]["specials"]:
+        sitename = special["sitename"]
+        code = special["code"]
+        language_code = special["lang"]
+
+        if sitename == "Wikipedia":
+            logger.warning(
+                f"Wikipedia special project {code} in {language_code} has site name {sitename}"
+            )
+            sitename = code
+
+        if language_code not in languages:
+            language_code = "special"
+
+        if code not in projects:
+            projects[code] = sitename
+
+        languages[language_code]["projects"][code] = special["url"]
 
     return projects, languages
 
@@ -214,6 +251,10 @@ def wiki_article(
     base_url = language_projects.get(project)
 
     if not base_url:
+        special_projects = app.languages.get("special", {}).get("projects", {})
+        base_url = special_projects.get(project)
+
+    if not base_url:
         return (
             render_template(
                 "article.html",
@@ -250,6 +291,8 @@ def wiki_article(
             )
         else:
             logger.error(f"Error fetching article {title} from {lang}.{project}: {e}")
+            logger.debug(f"Attempted URL: {api_request.full_url}")
+            logger.debug(f"Response: {e.read()}")
             return (
                 render_template(
                     "article.html",
@@ -382,6 +425,10 @@ def search_results(
     base_url = language_projects.get(project)
 
     if not base_url:
+        special_projects = app.languages.get("special", {}).get("projects", {})
+        base_url = special_projects.get(project)
+
+    if not base_url:
         return (
             render_template(
                 "article.html",
@@ -441,13 +488,16 @@ def index_php_redirect(project, lang) -> Response:
     try:
         url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
     except KeyError:
-        return (
-            render_template(
-                "article.html",
-                title="Project does not exist",
-                content=f"Sorry, the project {project} does not exist in the {lang} language.",
-            ),
-        )
+        try:
+            url = f"{app.languages['special']['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
+        except KeyError:
+            return (
+                render_template(
+                    "article.html",
+                    title="Project does not exist",
+                    content=f"Sorry, the project {project} does not exist in the {lang} language.",
+                ),
+            )
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
     main_page = data["query"]["general"]["mainpage"]
