@@ -1,16 +1,11 @@
 /* General styling */
-* {
-    box-sizing: border-box;
-    max-width: 100%;
-}
-
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #f8f9fa;
     width: 100%;
-    overflow-x: hidden;
+    overflow-x:
 }
 
 /* Link styling */
@@ -110,8 +105,11 @@ h1 {
     padding: 10px;
     margin: 10px 0;
     float: right;
-    width: 250px;
+    width: 300px;
+    min-width: 300px;
+    max-width: 100%;
     box-sizing: border-box;
+    overflow-x: auto;
     clear: right;
 }
 
@@ -482,17 +480,23 @@ section>.category-link::after {
 .infobox {
     float: right;
     margin: 1em;
+    width: 300px;
     min-width: 300px;
-    width: fit-content !important;
+    max-width: 100%;
     background-color: #f9f9f9;
     border: 1px solid #ddd;
     font-size: small;
     border-collapse: collapse;
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
     overflow-x: auto;
     clear: right;
+}
+
+.infobox-title {
+    background-color: #1e90ff;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
 }
 
 .infobox-above,
