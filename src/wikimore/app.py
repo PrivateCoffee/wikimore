@@ -406,7 +406,7 @@ def wiki_article(
     )
 
 
-@app.route("/<project>/<lang>/search/<query>")
+@app.route("/<project>/<lang>/search/<path:query>")
 def search_results(
     project: str, lang: str, query: str
 ) -> Union[Text, Tuple[Text, int]]:
