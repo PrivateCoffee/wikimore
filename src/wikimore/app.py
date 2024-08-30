@@ -445,9 +445,22 @@ def search_results(
     url = (
         f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
     )
-    with urllib.request.urlopen(url) as response:
-        data = json.loads(response.read().decode())
-    search_results = data["query"]["search"]
+
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read().decode())
+        search_results = data["query"]["search"]
+    except Exception as e:
+        logger.error(f"Error fetching search results: {e}")
+        return (
+            render_template(
+                "article.html",
+                title="Search Error",
+                content="An error occurred while fetching search results. Please try again later.",
+            ),
+            500,
+        )
+
     return render_template(
         "search_results.html",
         query=query,
