@@ -267,7 +267,7 @@ def wiki_article(
     logger.debug(f"Fetching {title} from {base_url}")
 
     api_request = urllib.request.Request(
-        f"{base_url}/api/rest_v1/page/html/{quote(escape(title.replace(' ', '_'), False)).replace('/', '%2F')}",
+        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(" ", "_")), True).replace('/', '%2F')}",
         headers=HEADERS,
     )
 
@@ -399,7 +399,7 @@ def wiki_article(
 
     # Get license information from the article
     mediawiki_api_request = urllib.request.Request(
-        f"{base_url}/w/rest.php/v1/page/{quote(escape(title.replace(' ', '_'), False))}",
+        f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(" ", "_")), True)}",
         headers=HEADERS,
     )
 
@@ -456,11 +456,13 @@ def search_results(
 
     logger.debug(f"Searching {base_url} for {query}")
 
-    srquery = quote(escape(query.replace(" ", "_"), True))
+    srquery = escape(quote(query.replace(" ", "_")), True)
 
     url = (
         f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
     )
+
+    logger.debug(f"Fetching search results from {url}")
 
     try:
         with urllib.request.urlopen(url) as response:
