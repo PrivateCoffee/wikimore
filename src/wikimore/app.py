@@ -387,8 +387,6 @@ def wiki_article(
         if parent.attrs.get("data-mw-group", None):
             span["class"] = span.get("class", []) + [parent.attrs["data-mw-group"]]
 
-    processed_html = str(body)
-
     rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))
 
     # Edge case: When passing the `ku-arab` variant, the article is in Arabic
@@ -399,6 +397,20 @@ def wiki_article(
 
     processed_html = str(body)
 
+    # Get license information from the article
+    mediawiki_api_request = urllib.request.Request(
+        f"{base_url}/w/rest.php/v1/page/{quote(escape(title.replace(' ', '_'), False))}",
+        headers=HEADERS,
+    )
+
+    try:
+        with urllib.request.urlopen(mediawiki_api_request) as response:
+            data = json.loads(response.read().decode())
+        license = data["license"]
+    except Exception as e:
+        logger.error(f"Error fetching license information: {e}")
+        license = None
+
     return render_template(
         "article.html",
         title=title.replace("_", " "),
@@ -406,6 +418,7 @@ def wiki_article(
         lang=lang,
         project=project,
         rtl=rtl,
+        license=license,
     )
 
 

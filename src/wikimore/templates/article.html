@@ -4,3 +4,9 @@
     <h1 class="title{% if rtl %} title-rtl{% endif %}">{{ title }}</h1>
     {{ content|safe }}
 {% endblock %}
+
+{% block license %}
+{% if license %}
+    <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
+{% endif %}
+{% endblock %}
