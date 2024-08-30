@@ -395,6 +395,9 @@ def wiki_article(
     # script but the direction returned in the API response is still LTR.
     if request.args.get("variant") == "ku-arab":
         rtl = True
+        body["dir"] = "rtl"
+
+    processed_html = str(body)
 
     return render_template(
         "article.html",
