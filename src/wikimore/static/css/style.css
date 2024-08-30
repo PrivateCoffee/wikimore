@@ -264,10 +264,6 @@ section>.category-link::after {
     clear: both;
 }
 
-.noprint {
-    display: none;
-}
-
 .hatnote {
     margin: 1em 0;
     padding: 10px;
