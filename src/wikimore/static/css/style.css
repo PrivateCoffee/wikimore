@@ -487,6 +487,10 @@ section>.category-link::after {
     clear: right;
 }
 
+.infobox .mw-default-size {
+    float: unset;
+}
+
 .infobox-title {
     background-color: #1e90ff;
     color: white;
