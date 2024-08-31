@@ -192,13 +192,13 @@ def proxy() -> bytes:
 
 
 @app.route("/")
-def home() -> Text:
+def home(project=None, lang=None) -> Text:
     """Renders the home page.
 
     Returns:
         Text: The rendered home page.
     """
-    return render_template("home.html")
+    return render_template("home.html", project=project, lang=lang)
 
 
 @app.route("/search", methods=["GET", "POST"])
@@ -247,6 +247,7 @@ def wiki_article(
     Returns:
         str|Response|Tuple[str, int]: The rendered article, a redirect to another article, or an error message with a status code.
     """
+    # Check if the project and language are valid
     language_projects = app.languages.get(lang, {}).get("projects", {})
     base_url = language_projects.get(project)
 
@@ -271,9 +272,12 @@ def wiki_article(
         headers=HEADERS,
     )
 
+    # Add the `variant` header if the `variant` query parameter is present
+    # This is used to fetch articles in a specific script variant (https://www.mediawiki.org/wiki/Writing_systems/LanguageConverter)
     if request.args.get("variant", None):
         api_request.add_header("Accept-Language", f"{request.args['variant']}")
 
+    # Fetch the article content
     try:
         with urllib.request.urlopen(api_request) as response:
             article_html = response.read().decode()
@@ -313,10 +317,11 @@ def wiki_article(
         soup = BeautifulSoup(article_html, "html.parser")
         body = soup.find("div", class_="mw-body-content")
 
+    # Turn the body into a div
     body.name = "div"
 
+    # If the article is a redirect, follow the redirect, unless the `redirect=no` query parameter is present
     redirect_message = soup.find("div", class_="redirectMsg")
-
     if redirect_message and not (request.args.get("redirect") == "no"):
         redirect_dest = redirect_message.find("a")["title"]
         logger.debug(f"Redirecting to {redirect_dest}")
@@ -326,44 +331,64 @@ def wiki_article(
         logger.debug(f"Redirect URL: {destination}")
         return redirect(destination)
 
+    # Update links to other articles
     for a in soup.find_all("a", href=True) + soup.find_all("area", href=True):
         href = a["href"]
 
+        # Internal links
         if href.startswith("/wiki/"):
             a["href"] = f"/{project}/{lang}{href}"
 
+        # External links
         elif href.startswith("//") or href.startswith("https://"):
             parts = urlparse(href)
 
             target_domain = f"https://{parts.netloc}"
             path_parts = parts.path.split("/")
 
+            target_title = None
+
             if len(path_parts) >= 3:
                 target_title = "/".join(path_parts[2:])
 
-                found = False
-                for language, language_projects in app.languages.items():
-                    for project_name, project_url in language_projects[
-                        "projects"
-                    ].items():
-                        if project_url == target_domain:
+            found = False
+
+            # Check if it is an interwiki link
+            for language, language_projects in app.languages.items():
+                for project_name, project_url in language_projects["projects"].items():
+                    if project_url == target_domain:
+                        if target_title:
                             a["href"] = url_for(
                                 "wiki_article",
                                 project=project_name,
                                 lang=language,
                                 title=target_title,
                             )
-                            found = True
-                            break
-                    if found:
-                        break
+                        else:
+                            a["href"] = url_for(
+                                "index_php_redirect",
+                                project=project_name,
+                                lang=language,
+                            )
+                        found = True
 
+                    # Try to check if it is a link to the "main page" of a project
+                    elif (
+                        language == "en"
+                        and project_url.replace("en.", "www.") == target_domain
+                    ):
+                        a["href"] = url_for("home", project=project_name, lang=language)
+                if found:
+                    break
+
+    # Remove edit sections and styles
     for span in soup.find_all("span", class_="mw-editsection"):
         span.decompose()
 
     for style in soup.find_all("style"):
         style.decompose()
 
+    # Proxy images and videos
     for img in soup.find_all("img"):
         img["src"] = get_proxy_url(img["src"])
 
@@ -373,20 +398,24 @@ def wiki_article(
     for video in soup.find_all("video"):
         video["poster"] = get_proxy_url(video["poster"])
 
+    # Convert category elements to links
     for link in soup.find_all("link", rel="mw:PageProp/Category"):
         link.name = "a"
         link.string = link["href"][2:].replace("_", " ")
         link["class"] = "category-link"
 
+    # Remove meta links
     for li in soup.find_all("li"):
         if any(cls in li.get("class", []) for cls in ["nv-view", "nv-talk", "nv-edit"]):
             li.decompose()
 
+    # Add classes to reference links
     for span in soup.find_all(class_="mw-reflink-text"):
         parent = span.parent
         if parent.attrs.get("data-mw-group", None):
             span["class"] = span.get("class", []) + [parent.attrs["data-mw-group"]]
 
+    # Check if the article is in a right-to-left language
     rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))
 
     # Edge case: When passing the `ku-arab` variant, the article is in Arabic
@@ -411,6 +440,7 @@ def wiki_article(
         logger.error(f"Error fetching license information: {e}")
         license = None
 
+    # Render the article
     return render_template(
         "article.html",
         title=title.replace("_", " "),
