@@ -116,6 +116,7 @@ def get_wikimedia_projects() -> (
 
 
 app.wikimedia_projects, app.languages = get_wikimedia_projects()
+app.licenses = {}
 
 logger.debug(
     f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
@@ -426,19 +427,21 @@ def wiki_article(
 
     processed_html = str(body)
 
-    # Get license information from the article
-    mediawiki_api_request = urllib.request.Request(
-        f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(" ", "_")), True)}",
-        headers=HEADERS,
-    )
+    # Get license information for the article
+    if base_url not in app.licenses:
+        try:
+            mediawiki_api_request = urllib.request.Request(
+                f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(" ", "_")), True)}",
+                headers=HEADERS,
+            )
+            mediawiki_api_response = urllib.request.urlopen(mediawiki_api_request)
+            mediawiki_api_data = json.loads(mediawiki_api_response.read().decode())
+            app.licenses[base_url] = license = mediawiki_api_data["license"]
+        except Exception as e:
+            license = None
 
-    try:
-        with urllib.request.urlopen(mediawiki_api_request) as response:
-            data = json.loads(response.read().decode())
-        license = data["license"]
-    except Exception as e:
-        logger.error(f"Error fetching license information: {e}")
-        license = None
+    else:
+        license = app.licenses[base_url]
 
     # Render the article
     return render_template(
