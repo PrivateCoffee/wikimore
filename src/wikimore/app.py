@@ -437,7 +437,7 @@ def wiki_article(
             mediawiki_api_response = urllib.request.urlopen(mediawiki_api_request)
             mediawiki_api_data = json.loads(mediawiki_api_response.read().decode())
             app.licenses[base_url] = license = mediawiki_api_data["license"]
-        except Exception as e:
+        except Exception:
             license = None
 
     else:
