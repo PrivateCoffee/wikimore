@@ -22,6 +22,7 @@ This project is still in development and more features will be added in the futu
 | URL                                                         | Provided by                               | Country | Comments |
 | ----------------------------------------------------------- | ----------------------------------------- | ------- | -------- |
 | [wikimore.private.coffee](https://wikimore.private.coffee/) | [Private.coffee](https://private.coffee/) | Austria |          |
+| [wm.bloat.cat](https://wm.bloat.cat/)                       | [bloat.cat](https://bloat.cat/)           | Germany |          |
 
 If you operate a public instance of Wikimore and would like to have it listed here, please open an issue or a pull request.
 
