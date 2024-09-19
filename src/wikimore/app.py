@@ -269,7 +269,7 @@ def wiki_article(
     logger.debug(f"Fetching {title} from {base_url}")
 
     api_request = urllib.request.Request(
-        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(" ", "_")), True).replace('/', '%2F')}",
+        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
         headers=HEADERS,
     )
 
