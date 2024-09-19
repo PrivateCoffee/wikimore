@@ -431,7 +431,7 @@ def wiki_article(
     if base_url not in app.licenses:
         try:
             mediawiki_api_request = urllib.request.Request(
-                f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(" ", "_")), True)}",
+                f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(' ', '_')), True)}",
                 headers=HEADERS,
             )
             mediawiki_api_response = urllib.request.urlopen(mediawiki_api_request)
