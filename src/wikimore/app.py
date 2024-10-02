@@ -232,6 +232,41 @@ def search() -> Union[Text, Response]:
     return render_template("search.html")
 
 
+@app.route("/<domain>/<path:url>")
+def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text, int]]:
+    """Redirects to the appropriate project/language combination given the domain name of a Wikimedia project
+
+    Args:
+        domain (str): The domain of the Wikimedia project.
+        url (str): The URL path.
+
+    Returns:
+        Response: A redirect to the corresponding route
+    """
+    for language, language_projects in app.languages.items():
+        for project_name, project_url in language_projects["projects"].items():
+            if project_url == f"https://{domain}":
+                return redirect(
+                    f"{url_for('home')}{project_name}/{language}/{url}"
+                )
+
+    for project_name, project_url in app.languages["special"]["projects"].items():
+        if project_url == f"https://{domain}":
+            return redirect(
+                f"{url_for('home')}/{project_name}/{language}/{url}"
+            )
+
+    # TODO / IDEA: Handle non-Wikimedia Mediawiki projects here?
+
+    return (
+        render_template(
+            "article.html",
+            title="Project does not exist",
+            content=f"Sorry, the project {domain} does not exist.",
+        ),
+        404,
+    )
+
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
     project: str, lang: str, title: str
