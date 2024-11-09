@@ -23,6 +23,7 @@ This project is still in development and more features will be added in the futu
 | ----------------------------------------------------------- | ----------------------------------------- | ------- | -------- |
 | [wikimore.private.coffee](https://wikimore.private.coffee/) | [Private.coffee](https://private.coffee/) | Austria |          |
 | [wm.bloat.cat](https://wm.bloat.cat/)                       | [bloat.cat](https://bloat.cat/)           | Germany |          |
+| [wikimore.lumaeris.com](https://wikimore.lumaeris.com/)     | [Lumaeris](https://lumaeris.com/)         | Germany |          |
 
 If you operate a public instance of Wikimore and would like to have it listed here, please open an issue or a pull request.
 
