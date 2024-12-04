@@ -428,6 +428,9 @@ def wiki_article(
     for img in soup.find_all("img"):
         img["src"] = get_proxy_url(img["src"])
 
+        # While we're at it, ensure that images are loaded lazily
+        img["loading"] = "lazy"
+
     for source in soup.find_all("source"):
         source["src"] = get_proxy_url(source["src"])
 
