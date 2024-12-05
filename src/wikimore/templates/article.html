@@ -2,6 +2,24 @@
 
 {% block content %}
     <h1 class="title{% if rtl %} title-rtl{% endif %}">{{ title }}</h1>
+    {% if interwiki %}
+        <div class="language-selector">
+            <input type="checkbox" id="language-selector-toggle" class="language-selector-toggle">
+            <label for="language-selector-toggle" class="language-selector-label">
+                <span class="language-selector-label-text">Language</span>
+                <span class="language-selector-label-icon"></span>
+            </label>
+            <div class="language-selector-menu">
+                <ul class="language-selector-list">
+                    {% for lang in interwiki %}
+                        <li class="language-selector-item">
+                            <a href="{{ lang.url }}" class="language-selector-link">{{ lang.langname }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
     {{ content|safe }}
 {% endblock %}
 

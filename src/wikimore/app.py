@@ -123,6 +123,90 @@ logger.debug(
 )
 
 
+# Get number of active Wikipedia users for each language
+def get_active_users() -> Dict[str, int]:
+    """Fetch the number of active Wikipedia users for each language.
+
+    Returns:
+        Dict[str, int]: A dictionary mapping language codes to the number of active Wikipedia users.
+    """
+    path = "/w/api.php?action=query&format=json&meta=siteinfo&siprop=statistics"
+
+    active_users = {}
+
+    for lang, data in app.languages.items():
+        try:
+            url = f"{data['projects']['wiki']}{path}"
+            with urllib.request.urlopen(url) as response:
+                data = json.loads(response.read().decode())
+                active_users[lang] = data["query"]["statistics"]["activeusers"]
+        except Exception as e:
+            logger.error(f"Error fetching active users for {lang}: {e}")
+
+    return sorted(active_users.items(), key=lambda x: x[1], reverse=True)
+
+
+if os.environ.get("NO_LANGSORT", False):
+    LANGSORT = []
+elif os.environ.get("LANGSORT") == "auto":
+    LANGSORT = [lang for lang, _ in get_active_users()[:50]]
+elif os.environ.get("LANGSORT"):
+    LANGSORT = os.environ["LANGSORT"].split(",")
+else:
+    # Opinionated sorting of languages
+    LANGSORT = [
+        "en",
+        "es",
+        "ja",
+        "de",
+        "fr",
+        "zh",
+        "ru",
+        "it",
+        "pt",
+        "pl",
+        "nl",
+        "ar",
+    ]
+
+def langsort(input: list[dict], key: str = "lang") -> list[dict]:
+    """Sorting of language data.
+
+    Sorts a list of dictionaries containing "lang" keys such that the most common languages are first.
+
+    Allows specifying a custom order using the `LANGSORT` environment variable.
+
+    Args:
+        input (list[dict]): A list of dictionaries containing "lang" keys.
+
+    Returns:
+        list[dict]: The sorted list of dictionaries.
+    """
+
+    if not LANGSORT:
+        return input
+
+    output = []
+
+    for lang in LANGSORT:
+        for item in input:
+            if item[key] == lang:
+                output.append(item)
+
+    for item in input:
+        if item[key] not in LANGSORT:
+            output.append(item)
+
+    return output
+
+logger.debug("Initialized language sort order")
+
+app_languages = [{"lang": lang, "name": data["name"]} for lang, data in app.languages.items()]
+app_languages = langsort(app_languages)
+
+app.languages = {lang: app.languages[lang] for lang in [lang["lang"] for lang in app_languages]}
+
+
 def render_template(*args, **kwargs) -> Text:
     """A wrapper around Flask's `render_template` that adds the `languages` and `wikimedia_projects` context variables.
 
@@ -243,18 +327,16 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
     Returns:
         Response: A redirect to the corresponding route
     """
+    # TODO: Make this the default route scheme instead of a redirect
+
     for language, language_projects in app.languages.items():
         for project_name, project_url in language_projects["projects"].items():
             if project_url == f"https://{domain}":
-                return redirect(
-                    f"{url_for('home')}{project_name}/{language}/{url}"
-                )
+                return redirect(f"{url_for('home')}{project_name}/{language}/{url}")
 
     for project_name, project_url in app.languages["special"]["projects"].items():
         if project_url == f"https://{domain}":
-            return redirect(
-                f"{url_for('home')}/{project_name}/{language}/{url}"
-            )
+            return redirect(f"{url_for('home')}/{project_name}/{language}/{url}")
 
     # TODO / IDEA: Handle non-Wikimedia Mediawiki projects here?
 
@@ -266,6 +348,7 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
         ),
         404,
     )
+
 
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
@@ -307,6 +390,54 @@ def wiki_article(
         f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
         headers=HEADERS,
     )
+
+    logger.debug(f"Request URL: {api_request.full_url}")
+
+    # Use the MediaWiki API to fetch interwiki links
+    api_request_interwiki = urllib.request.Request(
+        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=langlinks&lllimit=500",
+        headers=HEADERS,
+    )
+
+    with urllib.request.urlopen(api_request_interwiki) as response:
+        logger.debug(
+            f"Tried to fetch interwiki links from {api_request_interwiki.full_url}"
+        )
+        data = json.loads(response.read().decode())
+        langlinks = data["query"]["pages"].popitem()[1].get("langlinks", [])
+
+    logger.debug(f"Original Interwiki links: {langlinks}")
+
+    interwiki = []
+
+    # Translate the interwiki links to internal links where possible
+    for link in langlinks:
+        try:
+            interwiki_lang = link["lang"]
+            interwiki_title = link["*"]
+
+            logger.debug(
+                f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
+            )
+
+            interwiki_url = url_for(
+                "wiki_article",
+                project=project,
+                lang=interwiki_lang,
+                title=interwiki_title,
+            )
+            link["url"] = interwiki_url
+
+            link["langname"] = app.languages[interwiki_lang]["name"]
+
+            interwiki.append(link)
+
+        except KeyError as e:
+            logger.error(
+                f"Error processing interwiki link for title {title} in language {lang}: {e}"
+            )
+
+    interwiki = langsort(interwiki)
 
     # Add the `variant` header if the `variant` query parameter is present
     # This is used to fetch articles in a specific script variant (https://www.mediawiki.org/wiki/Writing_systems/LanguageConverter)
@@ -490,6 +621,7 @@ def wiki_article(
         project=project,
         rtl=rtl,
         license=license,
+        interwiki=interwiki,
     )
 
 

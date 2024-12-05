@@ -1229,3 +1229,90 @@ Currently blocked by implementation of comments retrieval in the backend
         font-size: 0.8em;
     }
 }
+
+/* Language selector styling */
+.language-selector {
+    position: relative;
+    display: inline-block;
+}
+
+.language-selector-toggle {
+    display: none;
+}
+
+.language-selector-label {
+    cursor: pointer;
+    display: inline-block;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 0.25em;
+}
+
+.language-selector-label-text {
+    display: inline-block;
+    margin-right: 0.5em;
+}
+
+.language-selector-label-icon {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 0.25em solid transparent;
+    border-right: 0.25em solid transparent;
+    border-top: 0.25em solid #333;
+}
+
+.language-selector-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0.25em;
+}
+
+.language-selector-toggle:checked + .language-selector-label + .language-selector-menu {
+    display: block;
+}
+
+.language-selector-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.language-selector-item {
+    border-top: 1px solid #ccc;
+}
+
+.language-selector-link {
+    display: block;
+    padding: 0.5em;
+    text-decoration: none;
+    color: #333;
+}
+
+.language-selector-link:hover {
+    background-color: #f0f0f0;
+}
+
+.language-selector-link:active {
+    background-color: #e0e0e0;
+}
+
+.language-selector-link:focus {
+    outline: 1px dotted #333;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+
+.language-selector-link:active,
+.language-selector-link:focus {
+    outline: none;
+}
+
+.language-selector-link:active,
+.language-selector-link:focus {
+    outline: none;
+}
