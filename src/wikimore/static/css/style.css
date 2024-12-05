@@ -1316,3 +1316,7 @@ Currently blocked by implementation of comments retrieval in the backend
 .language-selector-link:focus {
     outline: none;
 }
+
+.badge {
+    max-height: 1em;
+}

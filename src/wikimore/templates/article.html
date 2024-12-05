@@ -1,7 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1 class="title{% if rtl %} title-rtl{% endif %}">{{ title }}</h1>
+    <h1 class="title{% if rtl %} title-rtl{% endif %}">
+        {{ title }}
+        {% if badges %}
+            <span class="badges">
+                {% for badge in badges %}
+                    <a href="{{ badge.url }}" class="badge" title="{{ badge.title }}">
+                        <img src="{{ badge.image }}" alt="{{ badge.title }}">
+                    </a>
+                {% endfor %}
+            </span>
+        {% endif %}
+    </h1>
     {% if interwiki %}
         <div class="language-selector">
             <input type="checkbox" id="language-selector-toggle" class="language-selector-toggle">

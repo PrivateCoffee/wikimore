@@ -169,6 +169,7 @@ else:
         "ar",
     ]
 
+
 def langsort(input: list[dict], key: str = "lang") -> list[dict]:
     """Sorting of language data.
 
@@ -199,12 +200,17 @@ def langsort(input: list[dict], key: str = "lang") -> list[dict]:
 
     return output
 
+
 logger.debug("Initialized language sort order")
 
-app_languages = [{"lang": lang, "name": data["name"]} for lang, data in app.languages.items()]
+app_languages = [
+    {"lang": lang, "name": data["name"]} for lang, data in app.languages.items()
+]
 app_languages = langsort(app_languages)
 
-app.languages = {lang: app.languages[lang] for lang in [lang["lang"] for lang in app_languages]}
+app.languages = {
+    lang: app.languages[lang] for lang in [lang["lang"] for lang in app_languages]
+}
 
 
 def render_template(*args, **kwargs) -> Text:
@@ -392,6 +398,56 @@ def wiki_article(
     )
 
     logger.debug(f"Request URL: {api_request.full_url}")
+
+    # Use the MediaWiki API to fetch any badges for the article
+    api_request_badges = urllib.request.Request(
+        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=pageprops",
+        headers=HEADERS,
+    )
+
+    badges = []
+
+    with urllib.request.urlopen(api_request_badges) as response:
+        logger.debug(f"Tried to fetch badges from {api_request_badges.full_url}")
+        data = json.loads(response.read().decode())
+        page = data["query"]["pages"].popitem()[1]
+        props = page.get("pageprops", {})
+
+        for prop in props:
+            if prop.startswith("wikibase-badge-"):
+                try:
+                    badge_id = prop.replace("wikibase-badge-", "")
+
+                    badge_request = urllib.request.Request(
+                        f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}",
+                        headers=HEADERS,
+                    )
+
+                    with urllib.request.urlopen(badge_request) as badge_response:
+                        logger.debug(
+                            f"Tried to fetch badge {badge_id} from {badge_request.full_url}"
+                        )
+
+                        badge_data = json.loads(badge_response.read().decode())
+
+                        badge = badge_data["entities"][badge_id]["labels"][lang][
+                            "value"
+                        ]
+                        badge_image = badge_data["entities"][badge_id]["claims"]["P18"][
+                            0
+                        ]["mainsnak"]["datavalue"]["value"]
+                        badges.append(
+                            {
+                                "title": badge,
+                                "url": f"https://www.wikidata.org/wiki/{badge_id}",
+                                "image": get_proxy_url(
+                                    f"https://commons.wikimedia.org/wiki/Special:Redirect/file/{badge_image}"
+                                ),
+                            }
+                        )
+
+                except Exception as e:
+                    logger.error(f"Error fetching badge {prop}: {e}")
 
     # Use the MediaWiki API to fetch interwiki links
     api_request_interwiki = urllib.request.Request(
@@ -622,6 +678,7 @@ def wiki_article(
         rtl=rtl,
         license=license,
         interwiki=interwiki,
+        badges=badges,
     )
 
 
