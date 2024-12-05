@@ -19,20 +19,20 @@ This project is still in development and more features will be added in the futu
 
 ## Instances
 
-| URL                                                               | Provided by                                     | Country | Comments |
-| ----------------------------------------------------------------- | ----------------------------------------------- | ------- | -------- |
-| [wikimore.private.coffee](https://wikimore.private.coffee/)       | [Private.coffee](https://private.coffee/)       | Austria |          |
-| [wm.bloat.cat](https://wm.bloat.cat/)                             | [bloat.cat](https://bloat.cat/)                 | Germany |          |
-| [wikimore.blitzw.in](https://wikimore.blitzw.in/)                 | [blitzw.in](https://blitzw.in/)                 | Denmark |          |
-| [wikimore.lumaeris.com](https://wikimore.lumaeris.com/)           | [Lumaeris](https://lumaeris.com/)               | Germany |          |
-| [wikimore.darkness.services](https://wikimore.darkness.services/) | [Darkness.services](https://darkness.services/) | USA     |          |
+| URL                                                               | Provided by                                     | Country       | Comments |
+| ----------------------------------------------------------------- | ----------------------------------------------- | ------------- | -------- |
+| [wikimore.private.coffee](https://wikimore.private.coffee/)       | [Private.coffee](https://private.coffee/)       | Austria 🇦🇹 🇪🇺 |          |
+| [wm.bloat.cat](https://wm.bloat.cat/)                             | [bloat.cat](https://bloat.cat/)                 | Germany 🇩🇪 🇪🇺 |          |
+| [wikimore.blitzw.in](https://wikimore.blitzw.in/)                 | [blitzw.in](https://blitzw.in/)                 | Denmark 🇩🇰 🇪🇺 |          |
+| [wikimore.lumaeris.com](https://wikimore.lumaeris.com/)           | [Lumaeris](https://lumaeris.com/)               | Germany 🇩🇪 🇪🇺 |          |
+| [wikimore.darkness.services](https://wikimore.darkness.services/) | [Darkness.services](https://darkness.services/) | USA 🇺🇸        |          |
 
 ### Tor Hidden Services
 
-| URL                                                                                                                                                        | Provided by                                     | Country | Comments |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------- | -------- |
-| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion/) | [Private.coffee](https://private.coffee/)       | Austria |          |
-| [wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion](http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion/) | [Darkness.services](https://darkness.services/) | USA     |          |
+| URL                                                                                                                                                        | Provided by                                     | Country       | Comments |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------- | -------- |
+| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion/) | [Private.coffee](https://private.coffee/)       | Austria 🇦🇹 🇪🇺 |          |
+| [wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion](http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion/) | [Darkness.services](https://darkness.services/) | USA 🇺🇸        |          |
 
 ### Adding Your Instance
 
