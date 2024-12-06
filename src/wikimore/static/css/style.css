@@ -1317,6 +1317,6 @@ Currently blocked by implementation of comments retrieval in the backend
     outline: none;
 }
 
-.badge {
+.badge > img {
     max-height: 1em;
 }
