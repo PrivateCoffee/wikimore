@@ -392,25 +392,55 @@ def wiki_article(
 
     logger.debug(f"Fetching {title} from {base_url}")
 
-    api_request = urllib.request.Request(
-        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
+    # Check if the article is something we need to handle differently
+    info_api_request = urllib.request.Request(
+        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks&lllimit=500",
         headers=HEADERS,
     )
 
-    logger.debug(f"Request URL: {api_request.full_url}")
-
-    # Use the MediaWiki API to fetch any badges for the article
-    api_request_badges = urllib.request.Request(
-        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=pageprops",
-        headers=HEADERS,
-    )
-
+    category_members = []
+    interwiki = []
     badges = []
 
-    with urllib.request.urlopen(api_request_badges) as response:
-        logger.debug(f"Tried to fetch badges from {api_request_badges.full_url}")
+    with urllib.request.urlopen(info_api_request) as response:
+        logger.debug(
+            f"Tried to fetch info for {title} from {info_api_request.full_url}"
+        )
         data = json.loads(response.read().decode())
         page = data["query"]["pages"].popitem()[1]
+
+        langlinks = page.get("langlinks", [])
+
+        logger.debug(f"Original Interwiki links for {title}: {langlinks}")
+
+        # Get interwiki links and translate them to internal links where possible
+        for link in langlinks:
+            try:
+                interwiki_lang = link["lang"]
+                interwiki_title = link["*"]
+
+                logger.debug(
+                    f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
+                )
+
+                interwiki_url = url_for(
+                    "wiki_article",
+                    project=project,
+                    lang=interwiki_lang,
+                    title=interwiki_title,
+                )
+                link["url"] = interwiki_url
+
+                link["langname"] = app.languages[interwiki_lang]["name"]
+
+                interwiki.append(link)
+
+            except KeyError as e:
+                logger.error(
+                    f"Error processing interwiki link for title {title} in language {lang}: {e}"
+                )
+
+        # Get badges (e.g. "Good Article", "Featured Article")
         props = page.get("pageprops", {})
 
         for prop in props:
@@ -418,6 +448,7 @@ def wiki_article(
                 try:
                     badge_id = prop.replace("wikibase-badge-", "")
 
+                    # Fetch the badge data from Wikidata
                     badge_request = urllib.request.Request(
                         f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}",
                         headers=HEADERS,
@@ -449,51 +480,57 @@ def wiki_article(
                 except Exception as e:
                     logger.error(f"Error fetching badge {prop}: {e}")
 
-    # Use the MediaWiki API to fetch interwiki links
-    api_request_interwiki = urllib.request.Request(
-        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=langlinks&lllimit=500",
+        # If the article is a category, fetch the category members
+        if "categoryinfo" in page:
+            category_api_url = f"{base_url}/w/api.php?action=query&format=json&list=categorymembers&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
+
+            category_api_request = urllib.request.Request(
+                category_api_url,
+                headers=HEADERS,
+            )
+
+            all_members = []
+
+            with urllib.request.urlopen(category_api_request) as category_api_response:
+                logger.debug(
+                    f"Tried to fetch category members for {title} from {category_api_request.full_url}"
+                )
+                data = json.loads(category_api_response.read().decode())
+                category_members = data["query"]["categorymembers"]
+                all_members += category_members
+
+                if "continue" in data:
+                    continue_params = f"&cmcontinue={data['continue']['cmcontinue']}"
+                    category_api_request = urllib.request.Request(
+                        category_api_url + continue_params,
+                        headers=HEADERS,
+                    )
+
+                    with urllib.request.urlopen(
+                        category_api_request
+                    ) as category_api_response:
+                        data = json.loads(category_api_response.read().decode())
+                        all_members += data["query"]["categorymembers"]
+
+            category_members = all_members
+
+            for member in category_members:
+                member["url"] = url_for(
+                    "wiki_article",
+                    project=project,
+                    lang=lang,
+                    title=member["title"],
+                )
+
+    interwiki = langsort(interwiki)
+
+    # Prepare the API request to fetch the article content
+    api_request = urllib.request.Request(
+        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
         headers=HEADERS,
     )
 
-    with urllib.request.urlopen(api_request_interwiki) as response:
-        logger.debug(
-            f"Tried to fetch interwiki links from {api_request_interwiki.full_url}"
-        )
-        data = json.loads(response.read().decode())
-        langlinks = data["query"]["pages"].popitem()[1].get("langlinks", [])
-
-    logger.debug(f"Original Interwiki links: {langlinks}")
-
-    interwiki = []
-
-    # Translate the interwiki links to internal links where possible
-    for link in langlinks:
-        try:
-            interwiki_lang = link["lang"]
-            interwiki_title = link["*"]
-
-            logger.debug(
-                f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
-            )
-
-            interwiki_url = url_for(
-                "wiki_article",
-                project=project,
-                lang=interwiki_lang,
-                title=interwiki_title,
-            )
-            link["url"] = interwiki_url
-
-            link["langname"] = app.languages[interwiki_lang]["name"]
-
-            interwiki.append(link)
-
-        except KeyError as e:
-            logger.error(
-                f"Error processing interwiki link for title {title} in language {lang}: {e}"
-            )
-
-    interwiki = langsort(interwiki)
+    logger.debug(f"Article content URL: {api_request.full_url}")
 
     # Add the `variant` header if the `variant` query parameter is present
     # This is used to fetch articles in a specific script variant (https://www.mediawiki.org/wiki/Writing_systems/LanguageConverter)
@@ -679,6 +716,7 @@ def wiki_article(
         license=license,
         interwiki=interwiki,
         badges=badges,
+        category_members=category_members,
     )
 
 
