@@ -123,6 +123,96 @@ logger.debug(
 )
 
 
+# Get number of active Wikipedia users for each language
+def get_active_users() -> Dict[str, int]:
+    """Fetch the number of active Wikipedia users for each language.
+
+    Returns:
+        Dict[str, int]: A dictionary mapping language codes to the number of active Wikipedia users.
+    """
+    path = "/w/api.php?action=query&format=json&meta=siteinfo&siprop=statistics"
+
+    active_users = {}
+
+    for lang, data in app.languages.items():
+        try:
+            url = f"{data['projects']['wiki']}{path}"
+            with urllib.request.urlopen(url) as response:
+                data = json.loads(response.read().decode())
+                active_users[lang] = data["query"]["statistics"]["activeusers"]
+        except Exception as e:
+            logger.error(f"Error fetching active users for {lang}: {e}")
+
+    return sorted(active_users.items(), key=lambda x: x[1], reverse=True)
+
+
+if os.environ.get("NO_LANGSORT", False):
+    LANGSORT = []
+elif os.environ.get("LANGSORT") == "auto":
+    LANGSORT = [lang for lang, _ in get_active_users()[:50]]
+elif os.environ.get("LANGSORT"):
+    LANGSORT = os.environ["LANGSORT"].split(",")
+else:
+    # Opinionated sorting of languages
+    LANGSORT = [
+        "en",
+        "es",
+        "ja",
+        "de",
+        "fr",
+        "zh",
+        "ru",
+        "it",
+        "pt",
+        "pl",
+        "nl",
+        "ar",
+    ]
+
+
+def langsort(input: list[dict], key: str = "lang") -> list[dict]:
+    """Sorting of language data.
+
+    Sorts a list of dictionaries containing "lang" keys such that the most common languages are first.
+
+    Allows specifying a custom order using the `LANGSORT` environment variable.
+
+    Args:
+        input (list[dict]): A list of dictionaries containing "lang" keys.
+
+    Returns:
+        list[dict]: The sorted list of dictionaries.
+    """
+
+    if not LANGSORT:
+        return input
+
+    output = []
+
+    for lang in LANGSORT:
+        for item in input:
+            if item[key] == lang:
+                output.append(item)
+
+    for item in input:
+        if item[key] not in LANGSORT:
+            output.append(item)
+
+    return output
+
+
+logger.debug("Initialized language sort order")
+
+app_languages = [
+    {"lang": lang, "name": data["name"]} for lang, data in app.languages.items()
+]
+app_languages = langsort(app_languages)
+
+app.languages = {
+    lang: app.languages[lang] for lang in [lang["lang"] for lang in app_languages]
+}
+
+
 def render_template(*args, **kwargs) -> Text:
     """A wrapper around Flask's `render_template` that adds the `languages` and `wikimedia_projects` context variables.
 
@@ -243,18 +333,16 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
     Returns:
         Response: A redirect to the corresponding route
     """
+    # TODO: Make this the default route scheme instead of a redirect
+
     for language, language_projects in app.languages.items():
         for project_name, project_url in language_projects["projects"].items():
             if project_url == f"https://{domain}":
-                return redirect(
-                    f"{url_for('home')}{project_name}/{language}/{url}"
-                )
+                return redirect(f"{url_for('home')}{project_name}/{language}/{url}")
 
     for project_name, project_url in app.languages["special"]["projects"].items():
         if project_url == f"https://{domain}":
-            return redirect(
-                f"{url_for('home')}/{project_name}/{language}/{url}"
-            )
+            return redirect(f"{url_for('home')}/{project_name}/{language}/{url}")
 
     # TODO / IDEA: Handle non-Wikimedia Mediawiki projects here?
 
@@ -266,6 +354,7 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
         ),
         404,
     )
+
 
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
@@ -303,10 +392,145 @@ def wiki_article(
 
     logger.debug(f"Fetching {title} from {base_url}")
 
+    # Check if the article is something we need to handle differently
+    info_api_request = urllib.request.Request(
+        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks&lllimit=500",
+        headers=HEADERS,
+    )
+
+    category_members = []
+    interwiki = []
+    badges = []
+
+    with urllib.request.urlopen(info_api_request) as response:
+        logger.debug(
+            f"Tried to fetch info for {title} from {info_api_request.full_url}"
+        )
+        data = json.loads(response.read().decode())
+        page = data["query"]["pages"].popitem()[1]
+
+        langlinks = page.get("langlinks", [])
+
+        logger.debug(f"Original Interwiki links for {title}: {langlinks}")
+
+        # Get interwiki links and translate them to internal links where possible
+        for link in langlinks:
+            try:
+                interwiki_lang = link["lang"]
+                interwiki_title = link["*"]
+
+                logger.debug(
+                    f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
+                )
+
+                interwiki_url = url_for(
+                    "wiki_article",
+                    project=project,
+                    lang=interwiki_lang,
+                    title=interwiki_title,
+                )
+                link["url"] = interwiki_url
+
+                link["langname"] = app.languages[interwiki_lang]["name"]
+
+                interwiki.append(link)
+
+            except KeyError as e:
+                logger.error(
+                    f"Error processing interwiki link for title {title} in language {lang}: {e}"
+                )
+
+        # Get badges (e.g. "Good Article", "Featured Article")
+        props = page.get("pageprops", {})
+
+        for prop in props:
+            if prop.startswith("wikibase-badge-"):
+                try:
+                    badge_id = prop.replace("wikibase-badge-", "")
+
+                    # Fetch the badge data from Wikidata
+                    badge_request = urllib.request.Request(
+                        f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}",
+                        headers=HEADERS,
+                    )
+
+                    with urllib.request.urlopen(badge_request) as badge_response:
+                        logger.debug(
+                            f"Tried to fetch badge {badge_id} from {badge_request.full_url}"
+                        )
+
+                        badge_data = json.loads(badge_response.read().decode())
+
+                        badge = badge_data["entities"][badge_id]["labels"][lang][
+                            "value"
+                        ]
+                        badge_image = badge_data["entities"][badge_id]["claims"]["P18"][
+                            0
+                        ]["mainsnak"]["datavalue"]["value"]
+                        badges.append(
+                            {
+                                "title": badge,
+                                "url": f"https://www.wikidata.org/wiki/{badge_id}",
+                                "image": get_proxy_url(
+                                    f"https://commons.wikimedia.org/wiki/Special:Redirect/file/{badge_image}"
+                                ),
+                            }
+                        )
+
+                except Exception as e:
+                    logger.error(f"Error fetching badge {prop}: {e}")
+
+        # If the article is a category, fetch the category members
+        if "categoryinfo" in page:
+            category_api_url = f"{base_url}/w/api.php?action=query&format=json&list=categorymembers&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
+
+            category_api_request = urllib.request.Request(
+                category_api_url,
+                headers=HEADERS,
+            )
+
+            all_members = []
+
+            with urllib.request.urlopen(category_api_request) as category_api_response:
+                logger.debug(
+                    f"Tried to fetch category members for {title} from {category_api_request.full_url}"
+                )
+                data = json.loads(category_api_response.read().decode())
+                category_members = data["query"]["categorymembers"]
+                all_members += category_members
+
+                if "continue" in data:
+                    continue_params = f"&cmcontinue={data['continue']['cmcontinue']}"
+                    category_api_request = urllib.request.Request(
+                        category_api_url + continue_params,
+                        headers=HEADERS,
+                    )
+
+                    with urllib.request.urlopen(
+                        category_api_request
+                    ) as category_api_response:
+                        data = json.loads(category_api_response.read().decode())
+                        all_members += data["query"]["categorymembers"]
+
+            category_members = all_members
+
+            for member in category_members:
+                member["url"] = url_for(
+                    "wiki_article",
+                    project=project,
+                    lang=lang,
+                    title=member["title"],
+                )
+
+    interwiki = langsort(interwiki)
+
+    # Prepare the API request to fetch the article content
     api_request = urllib.request.Request(
         f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
         headers=HEADERS,
     )
+
+    logger.debug(f"Article content URL: {api_request.full_url}")
 
     # Add the `variant` header if the `variant` query parameter is present
     # This is used to fetch articles in a specific script variant (https://www.mediawiki.org/wiki/Writing_systems/LanguageConverter)
@@ -428,6 +652,9 @@ def wiki_article(
     for img in soup.find_all("img"):
         img["src"] = get_proxy_url(img["src"])
 
+        # While we're at it, ensure that images are loaded lazily
+        img["loading"] = "lazy"
+
     for source in soup.find_all("source"):
         source["src"] = get_proxy_url(source["src"])
 
@@ -487,6 +714,9 @@ def wiki_article(
         project=project,
         rtl=rtl,
         license=license,
+        interwiki=interwiki,
+        badges=badges,
+        category_members=category_members,
     )
 
 

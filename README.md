@@ -19,12 +19,30 @@ This project is still in development and more features will be added in the futu
 
 ## Instances
 
-| URL                                                         | Provided by                               | Country | Comments |
-| ----------------------------------------------------------- | ----------------------------------------- | ------- | -------- |
-| [wikimore.private.coffee](https://wikimore.private.coffee/) | [Private.coffee](https://private.coffee/) | Austria |          |
-| [wm.bloat.cat](https://wm.bloat.cat/)                       | [bloat.cat](https://bloat.cat/)           | Germany |          |
+| URL                                                               | Provided by                                     | Country       | Comments |
+| ----------------------------------------------------------------- | ----------------------------------------------- | ------------- | -------- |
+| [wikimore.private.coffee](https://wikimore.private.coffee/)       | [Private.coffee](https://private.coffee/)       | Austria 🇦🇹 🇪🇺 |          |
+| [wm.bloat.cat](https://wm.bloat.cat/)                             | [bloat.cat](https://bloat.cat/)                 | Germany 🇩🇪 🇪🇺 |          |
+| [wikimore.blitzw.in](https://wikimore.blitzw.in/)                 | [blitzw.in](https://blitzw.in/)                 | Denmark 🇩🇰 🇪🇺 |          |
+| [wikimore.lumaeris.com](https://wikimore.lumaeris.com/)           | [Lumaeris](https://lumaeris.com/)               | Germany 🇩🇪 🇪🇺 |          |
+| [wikimore.darkness.services](https://wikimore.darkness.services/) | [Darkness.services](https://darkness.services/) | USA 🇺🇸        |          |
 
-If you operate a public instance of Wikimore and would like to have it listed here, please open an issue or a pull request.
+### Tor Hidden Services
+
+| URL                                                                                                                                                        | Provided by                                     | Country       | Comments |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------- | -------- |
+| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion/) | [Private.coffee](https://private.coffee/)       | Austria 🇦🇹 🇪🇺 |          |
+| [wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion](http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion/) | [Darkness.services](https://darkness.services/) | USA 🇺🇸        |          |
+
+### Adding Your Instance
+
+To add your own instance to this list, please open a pull request or issue, see below.
+
+## Opening Issues
+
+If you're having problems using Wikimore, or if you have ideas or feedback for us, feel free to open an issue in the [Private.coffee Git](https://git.private.coffee/PrivateCoffee/wikimore/issues) or on [Github](https://github.com/PrivateCoffee/wikimore/issues).
+
+Of course, you can also join our [Matrix room](https://matrix.pcof.fi/#/#wikimore:private.coffee) to discuss your ideas with us.
 
 ## Installation
 
