@@ -1,0 +1,5 @@
+services:
+    wikimore-app:
+        build: .
+        ports:
+            - 8109:8109 ## change host port if needed
