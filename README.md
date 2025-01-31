@@ -23,6 +23,7 @@ This project is still in development and more features will be added in the futu
 | ----------------------------------------------------------------- | ----------------------------------------------- | ------------- | -------- |
 | [wikimore.private.coffee](https://wikimore.private.coffee/)       | [Private.coffee](https://private.coffee/)       | Austria 🇦🇹 🇪🇺 |          |
 | [wm.bloat.cat](https://wm.bloat.cat/)                             | [bloat.cat](https://bloat.cat/)                 | Germany 🇩🇪 🇪🇺 |          |
+| [wm2.bloat.cat](https://wm2.bloat.cat/)                           | [bloat.cat](https://bloat.cat/)                 | Germany 🇩🇪 🇪🇺 |          |
 | [wikimore.blitzw.in](https://wikimore.blitzw.in/)                 | [blitzw.in](https://blitzw.in/)                 | Denmark 🇩🇰 🇪🇺 |          |
 | [wikimore.lumaeris.com](https://wikimore.lumaeris.com/)           | [Lumaeris](https://lumaeris.com/)               | Germany 🇩🇪 🇪🇺 |          |
 | [wikimore.darkness.services](https://wikimore.darkness.services/) | [Darkness.services](https://darkness.services/) | USA 🇺🇸        |          |
