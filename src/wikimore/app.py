@@ -394,13 +394,14 @@ def wiki_article(
 
     # Check if the article is something we need to handle differently
     info_api_request = urllib.request.Request(
-        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks&lllimit=500",
+        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500",
         headers=HEADERS,
     )
 
     category_members = []
     interwiki = []
     badges = []
+    categories = []
 
     with urllib.request.urlopen(info_api_request) as response:
         logger.debug(
@@ -520,6 +521,18 @@ def wiki_article(
                     project=project,
                     lang=lang,
                     title=member["title"],
+                )
+
+        # Get categories the article is in
+        if "categories" in page:
+            categories = page["categories"]
+
+            for category in categories:
+                category["url"] = url_for(
+                    "wiki_article",
+                    project=project,
+                    lang=lang,
+                    title=category["title"],
                 )
 
     interwiki = langsort(interwiki)
@@ -716,6 +729,7 @@ def wiki_article(
         license=license,
         interwiki=interwiki,
         badges=badges,
+        categories=categories,
         category_members=category_members,
     )
 

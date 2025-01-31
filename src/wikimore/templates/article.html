@@ -40,6 +40,13 @@
             {% endfor %}
         </ul>
     {% endif %}
+    {% if categories %}
+        <div id="wm-categories">
+            {% for category in categories %}
+                <a href="{{ category.url }}" class="wm-category">{{ category.title }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
 {% endblock %}
 
 {% block license %}

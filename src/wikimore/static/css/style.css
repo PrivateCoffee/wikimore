@@ -204,16 +204,16 @@ h1 {
     text-align: center;
 }
 
-section:last-child>.category-link {
+.wm-category {
     display: inline;
     font-size: 0.8em;
 }
 
-section>.category-link::before {
+.wm-category::before {
     content: "[";
 }
 
-section>.category-link::after {
+.wm-category::after {
     content: "]";
 }
 
