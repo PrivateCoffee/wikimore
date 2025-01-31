@@ -70,7 +70,7 @@ wikimore
 
 4. Open your browser and navigate to `http://localhost:8109`
 
-## Docker
+### Docker
 
 For your convenience, we also provide a Docker image. Note however that this is _not_ the recommended way to run Wikimore.
 
@@ -83,7 +83,7 @@ docker-compose up -d
 
 This will start a container with Wikimore on port 8109. You can change the port in your `docker-compose.yml` file.
 
-## Development
+### Development
 
 1. Clone the repository
 
