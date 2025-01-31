@@ -1,12 +1,21 @@
-FROM python:3.10-slim
+FROM alpine:3.20
 
-WORKDIR /app
+ENV APP_ENV=/opt/venv
+ENV PATH="${APP_ENV}/bin:$PATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache py3-pip uwsgi-python3 && \
+  python3 -m venv $APP_ENV
 
-RUN pip install --no-cache-dir wikimore
+COPY . /app
+
+RUN $APP_ENV/bin/pip install --no-cache-dir pip && \
+  $APP_ENV/bin/pip install /app && \
+  adduser -S -D -H wikimore
+
+COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 8109
 
-CMD ["wikimore"]
+USER wikimore
+
+ENTRYPOINT ["/entrypoint.sh"]
