@@ -21,8 +21,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: git.private.coffee
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.FORGEJO_USER }}
+          password: ${{ secrets.FORGEJO_TOKEN }}
       - name: Build and push to Docker Hub
         uses: docker/build-push-action@v5
         with:
