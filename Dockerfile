@@ -14,6 +14,8 @@ RUN $APP_ENV/bin/pip install --no-cache-dir pip && \
 
 COPY entrypoint.sh /entrypoint.sh
 
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8109
 
 USER wikimore
