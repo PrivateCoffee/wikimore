@@ -79,7 +79,7 @@ You can use the bundled `docker-compose-example.yml` file to run Wikimore with D
 
 ```bash
 cp docker-compose-example.yml docker-compose.yml
-docker-compose up -d
+docker compose up -d
 ```
 
 This will start a container with Wikimore on port 8109. You can change the port in your `docker-compose.yml` file.
