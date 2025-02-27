@@ -73,6 +73,8 @@ wikimore
 
 ### Docker
 
+__Notice:__ The Docker image is now hosted on the [Private.coffee Git](https://git.private.coffee/PrivateCoffee/-/packages/container/wikimore/latest). Please update your Docker Compose file to use `git.private.coffee/privatecoffee/wikimore:latest` instead of `privatecoffee/wikimore:latest`. The Docker Hub deployment may be removed in the future.
+
 For your convenience, we also provide a Docker image. Note however that this is _not_ the recommended way to run Wikimore.
 
 You can use the bundled `docker-compose-example.yml` file to run Wikimore with Docker Compose.

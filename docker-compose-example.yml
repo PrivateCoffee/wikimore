@@ -2,7 +2,7 @@ services:
   wikimore-app:
     container_name: wikimore
     restart: unless-stopped
-    image: privatecoffee/wikimore:latest
+    image: git.private.coffee/privatecoffee/wikimore:latest
     ports:
       - "127.0.0.1:8109:8109"
     security_opt:
