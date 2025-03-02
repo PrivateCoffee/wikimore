@@ -1,0 +1,93 @@
+[
+    {
+        "name": "wikimore.private.coffee",
+        "url": "https://wikimore.private.coffee",
+        "type": "clearnet",
+        "provider": {
+            "name": "Private.coffee",
+            "url": "https://private.coffee"
+        },
+        "location": "AT",
+        "notes": "Main instance"
+    },
+    {
+        "name": "wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion",
+        "url": "http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion",
+        "type": "onion",
+        "provider": {
+            "name": "Private.coffee",
+            "url": "https://private.coffee"
+        },
+        "location": "AT"
+    },
+    {
+        "name": "wm.bloat.cat",
+        "url": "https://wm.bloat.cat",
+        "type": "clearnet",
+        "provider": {
+            "name": "Bloat.cat",
+            "url": "https://bloat.cat"
+        },
+        "location": "DE"
+    },
+    {
+        "name": "wm2.bloat.cat",
+        "url": "https://wm2.bloat.cat",
+        "type": "clearnet",
+        "provider": {
+            "name": "Bloat.cat",
+            "url": "https://bloat.cat"
+        },
+        "location": "DE"
+    },
+    {
+        "name": "wikimore.blitzw.in",
+        "url": "https://wikimore.blitzw.in",
+        "type": "clearnet",
+        "provider": {
+            "name": "Blitzw.in",
+            "url": "https://blitzw.in"
+        },
+        "location": "DK"
+    },
+    {
+        "name": "wikimore.lumaeris.com",
+        "url": "https://wikimore.lumaeris.com",
+        "type": "clearnet",
+        "provider": {
+            "name": "Lumaeris",
+            "url": "https://lumaeris.com"
+        },
+        "location": "DE"
+    },
+    {
+        "name": "wikimore.darkness.services",
+        "url": "https://wikimore.darkness.services",
+        "type": "clearnet",
+        "provider": {
+            "name": "Darkness.services",
+            "url": "https://darkness.services"
+        },
+        "location": "US"
+    },
+    {
+        "name": "wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion",
+        "url": "http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion",
+        "type": "onion",
+        "provider": {
+            "name": "Darkness.services",
+            "url": "https://darkness.services"
+        },
+        "location": "US"
+    },
+    {
+        "name": "wp.dc09.ru",
+        "url": "https://wp.dc09.ru",
+        "type": "clearnet",
+        "provider": {
+            "name": "dc09.ru",
+            "url": "https://dc09.ru"
+        },
+        "location": "RU"
+    }
+]
