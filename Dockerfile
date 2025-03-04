@@ -1,4 +1,4 @@
-FROM alpine:3.20
+FROM alpine:3.21
 
 ENV APP_ENV=/opt/venv
 ENV PATH="${APP_ENV}/bin:$PATH"
