@@ -26,7 +26,7 @@ jobs:
           username: ${{ secrets.FORGEJO_USER }}
           password: ${{ secrets.FORGEJO_TOKEN }}
       - name: Build and push to Forgejo
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           push: true
           tags: |
