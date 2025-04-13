@@ -29,13 +29,18 @@ a.new::after {
 
 /* Header styling */
 #header {
-    background-color: #ffffff;
-    border-bottom: 1px solid #a2a9b1;
-    padding: 10px 20px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
+    padding: 10px 20px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: 15px;
 }
 
 #header h1 {
@@ -54,12 +59,9 @@ a.new::after {
 
 /* Search styling */
 #search-form {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    width: 100%;
+    flex-basis: 100%;
+    order: 2;
+    margin-top: 10px;
 }
 
 #search-form input[type="text"],
@@ -1098,11 +1100,29 @@ Currently blocked by implementation of comments retrieval in the backend
     display: none;
 }
 
+@media (min-width: 992px) {
+    #search-form {
+        flex-basis: auto;
+        flex-grow: 1;
+        order: unset;
+        margin-top: 0;
+        margin-left: 20px;
+    }
+}
+
 /* Media query for devices with a max width of 768px */
 @media (max-width: 768px) {
     #header {
         flex-direction: column;
         align-items: center;
+    }
+
+    .header-right {
+        margin: 10px 0;
+    }
+
+    #search-form {
+        width: 100%;
     }
 
     #header h1 {
@@ -1273,7 +1293,7 @@ Currently blocked by implementation of comments retrieval in the backend
     border-radius: 0.25em;
 }
 
-.language-selector-toggle:checked + .language-selector-label + .language-selector-menu {
+.language-selector-toggle:checked+.language-selector-label+.language-selector-menu {
     display: block;
 }
 
@@ -1317,6 +1337,6 @@ Currently blocked by implementation of comments retrieval in the backend
     outline: none;
 }
 
-.badge > img {
+.badge>img {
     max-height: 1em;
 }

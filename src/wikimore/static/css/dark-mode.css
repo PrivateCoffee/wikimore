@@ -1,0 +1,274 @@
+/* Dark mode styles */
+:root {
+    --dark-bg-color: #121212;
+    --dark-text-color: #e0e0e0;
+    --dark-link-color: #64b5f6;
+    --dark-border-color: #444;
+    --dark-header-bg: #1e1e1e;
+    --dark-content-bg: #1e1e1e;
+    --dark-infobox-bg: #2a2a2a;
+    --dark-infobox-header: #3949ab;
+    --dark-table-bg: #2a2a2a;
+    --dark-table-alt-bg: #333;
+    --dark-table-header-bg: #3949ab;
+    --dark-code-bg: #2d2d2d;
+    --dark-highlight-bg: #3e3e3e;
+    --dark-quote-bg: #2a2a2a;
+    --dark-quote-border: #555;
+    --dark-navbox-bg: #2a2a2a;
+    --dark-navbox-header-bg: #3949ab;
+    --dark-sidebar-bg: #2a2a2a;
+    --dark-search-bg: #333;
+}
+
+body.dark-mode {
+    background-color: var(--dark-bg-color);
+    color: var(--dark-text-color);
+}
+
+/* Header styling */
+.dark-mode #header {
+    background-color: var(--dark-header-bg);
+    border-bottom: 1px solid var(--dark-border-color);
+}
+
+.dark-mode #header h1 a {
+    color: var(--dark-text-color);
+}
+
+/* Search form */
+.dark-mode #search-form input[type="text"],
+.dark-mode #search-form select,
+.dark-mode #search-form button {
+    background-color: var(--dark-search-bg);
+    color: var(--dark-text-color);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode #search-form button {
+    background-color: #3949ab;
+    color: white;
+}
+
+/* Content styling */
+.dark-mode #content {
+    background-color: var(--dark-content-bg);
+}
+
+.dark-mode a {
+    color: var(--dark-link-color);
+}
+
+.dark-mode a.new {
+    color: #e57373;
+}
+
+/* Infobox styling */
+.dark-mode .infobox {
+    background-color: var(--dark-infobox-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .infobox-title,
+.dark-mode .infobox-above,
+.dark-mode .infobox-header {
+    background-color: var(--dark-infobox-header);
+    color: white;
+}
+
+.dark-mode .infobox-subheader {
+    background-color: #3f51b5;
+    color: white;
+}
+
+.dark-mode .infobox-label {
+    background-color: #333;
+}
+
+/* Table styling */
+.dark-mode .table {
+    background-color: var(--dark-table-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .table th {
+    background-color: var(--dark-table-header-bg);
+}
+
+.dark-mode .table td {
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .table tr:nth-child(even) {
+    background-color: var(--dark-table-alt-bg);
+}
+
+.dark-mode .table tr:hover {
+    background-color: var(--dark-highlight-bg);
+}
+
+/* Sidebar styling */
+.dark-mode .sidebar {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .sidebar-title-with-pretitle,
+.dark-mode .sidebar-list-title {
+    background-color: #3f51b5;
+    color: white;
+}
+
+/* Navbox styling */
+.dark-mode .navbox {
+    background-color: var(--dark-navbox-bg);
+}
+
+.dark-mode .navbox-title,
+.dark-mode .navbox-group,
+.dark-mode .navbox-abovebelow {
+    background-color: var(--dark-navbox-header-bg);
+    color: white;
+}
+
+/* Hatnote and ambox */
+.dark-mode .hatnote,
+.dark-mode .ambox {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+/* Figure and thumb styling */
+.dark-mode figure,
+.dark-mode .tmulti,
+.dark-mode .thumb {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode figure img,
+.dark-mode .tmulti .mw-file-element,
+.dark-mode .thumb img {
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode figcaption,
+.dark-mode .thumbcaption {
+    color: #bbb;
+}
+
+/* Gallery styling */
+.dark-mode .mw-gallery-packed .thumb {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+/* Side box styling */
+.dark-mode .side-box {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+/* Authority control styling */
+.dark-mode .authority-control {
+    border: 1px solid var(--dark-border-color);
+}
+
+/* Footer styling */
+.dark-mode #footer {
+    background-color: var(--dark-header-bg);
+    border-top: 1px solid var(--dark-border-color);
+    color: var(--dark-text-color);
+}
+
+/* Language selector styling */
+.dark-mode .language-selector-label {
+    border: 1px solid var(--dark-border-color);
+    background-color: var(--dark-sidebar-bg);
+    color: var(--dark-text-color);
+}
+
+.dark-mode .language-selector-label-icon {
+    border-top: 0.25em solid var(--dark-text-color);
+}
+
+.dark-mode .language-selector-menu {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .language-selector-item {
+    border-top: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .language-selector-link {
+    color: var(--dark-text-color);
+}
+
+.dark-mode .language-selector-link:hover {
+    background-color: var(--dark-highlight-bg);
+}
+
+/* Dark mode toggle styling */
+.dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    margin-left: 15px;
+}
+
+.dark-mode-toggle label {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    margin-left: 8px;
+}
+
+.dark-mode-toggle .switch-track {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.dark-mode-toggle .switch-track:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.dark-mode-toggle input:checked + .switch-track {
+    background-color: #3949ab;
+}
+
+.dark-mode-toggle input:checked + .switch-track:before {
+    transform: translateX(26px);
+}
+
+.dark-mode-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.dark-mode-toggle .toggle-icon {
+    font-size: 16px;
+}
+
+/* Responsive adjustments for dark mode */
+@media (max-width: 768px) {
+    .dark-mode-toggle {
+        margin: 10px 0;
+    }
+}
