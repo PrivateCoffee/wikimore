@@ -15,9 +15,8 @@ import logging
 import pathlib
 from typing import Dict, Union, Tuple, Text
 from bs4 import BeautifulSoup
-
-app = Flask(__name__)
-app.static_folder = pathlib.Path(__file__).parent / "static"
+from .cache import cache
+import hashlib
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -27,8 +26,18 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
 
-# Remove the default Flask logger
-app.logger.removeHandler(app.logger.handlers[0])
+
+def create_app():
+    """Create and configure the Flask app."""
+    # TODO: Make this a little more configurable
+    app = Flask(__name__)
+    app.static_folder = pathlib.Path(__file__).parent / "static"
+    app.logger.removeHandler(app.logger.handlers[0])
+    cache.init_app(app)
+    return app
+
+
+app = create_app()
 
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
@@ -38,13 +47,15 @@ HEADERS = {
 }
 
 
+@cache.cached(timeout=86400, key_prefix="wikimedia_projects")
 def get_wikimedia_projects() -> (
     Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]
 ):
     """Fetch Wikimedia projects and languages from the Wikimedia API.
 
     Returns:
-        Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]: A tuple containing two dictionaries:
+        Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]:
+            A tuple containing two dictionaries:
             - The first dictionary maps Wikimedia project codes to project names.
             - The second dictionary maps language codes to dictionaries containing:
                 - A dictionary mapping Wikimedia project codes to project URLs.
@@ -356,6 +367,143 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
     )
 
 
+@cache.memoize(timeout=3600)  # 1 hour
+def fetch_article_content(base_url, title, variant=None):
+    """Fetches article content from the Wikimedia API with caching."""
+    logger.debug(f"Fetching article content for {title} from {base_url}")
+
+    # Create a unique cache key for the article
+    api_request = urllib.request.Request(
+        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
+        headers=HEADERS,
+    )
+
+    logger.debug(f"Article content URL: {api_request.full_url}")
+
+    if variant:
+        api_request.add_header("Accept-Language", f"{variant}")
+
+    try:
+        with urllib.request.urlopen(api_request) as response:
+            article_html = response.read().decode()
+            return article_html
+    except urllib.error.HTTPError as e:
+        # Re-raise the error to be handled by the calling function
+        raise
+
+
+@cache.memoize(timeout=1800)  # 30 minutes
+def fetch_search_results(base_url, query):
+    """Fetches search results from the Wikimedia API with caching."""
+    srquery = escape(quote(query.replace(" ", "_")), True)
+    url = (
+        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
+    )
+
+    logger.debug(f"Fetching search results from {url}")
+
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read().decode())
+        return data["query"]["search"]
+    except Exception as e:
+        logger.error(f"Error fetching search results: {e}")
+        raise
+
+
+@cache.memoize(timeout=3600)  # 1 hour
+def fetch_article_info(base_url, title):
+    """Fetches article metadata from the Wikimedia API with caching."""
+    logger.debug(f"Fetching article info for {title} from {base_url}")
+
+    info_api_request = urllib.request.Request(
+        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500",
+        headers=HEADERS,
+    )
+
+    with urllib.request.urlopen(info_api_request) as response:
+        logger.debug(
+            f"Tried to fetch info for {title} from {info_api_request.full_url}"
+        )
+        data = json.loads(response.read().decode())
+        return data
+
+
+@cache.memoize(timeout=86400)  # 24 hours
+def fetch_badge_data(badge_id, lang):
+    """Fetches badge data from Wikidata with caching."""
+    badge_request = urllib.request.Request(
+        f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}",
+        headers=HEADERS,
+    )
+
+    with urllib.request.urlopen(badge_request) as badge_response:
+        logger.debug(f"Tried to fetch badge {badge_id} from {badge_request.full_url}")
+        return json.loads(badge_response.read().decode())
+
+
+@cache.memoize(timeout=3600)  # 1 hour
+def fetch_category_members(base_url, title, project, lang):
+    """Fetches category members with caching."""
+    category_api_url = f"{base_url}/w/api.php?action=query&format=json&list=categorymembers&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
+
+    category_api_request = urllib.request.Request(
+        category_api_url,
+        headers=HEADERS,
+    )
+
+    all_members = []
+
+    with urllib.request.urlopen(category_api_request) as category_api_response:
+        logger.debug(
+            f"Tried to fetch category members for {title} from {category_api_request.full_url}"
+        )
+        data = json.loads(category_api_response.read().decode())
+        category_members = data["query"]["categorymembers"]
+        all_members += category_members
+
+        if "continue" in data:
+            continue_params = f"&cmcontinue={data['continue']['cmcontinue']}"
+            category_api_request = urllib.request.Request(
+                category_api_url + continue_params,
+                headers=HEADERS,
+            )
+
+            with urllib.request.urlopen(category_api_request) as category_api_response:
+                data = json.loads(category_api_response.read().decode())
+                all_members += data["query"]["categorymembers"]
+
+    for member in all_members:
+        member["url"] = url_for(
+            "wiki_article",
+            project=project,
+            lang=lang,
+            title=member["title"],
+        )
+
+    return all_members
+
+
+@cache.memoize(timeout=86400)  # 24 hours
+def fetch_license_info(base_url, title):
+    """Fetches license information with caching."""
+    if base_url not in app.licenses:
+        try:
+            mediawiki_api_request = urllib.request.Request(
+                f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(' ', '_')), True)}",
+                headers=HEADERS,
+            )
+            mediawiki_api_response = urllib.request.urlopen(mediawiki_api_request)
+            mediawiki_api_data = json.loads(mediawiki_api_response.read().decode())
+            app.licenses[base_url] = license = mediawiki_api_data["license"]
+        except Exception:
+            license = None
+    else:
+        license = app.licenses[base_url]
+
+    return license
+
+
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
     project: str, lang: str, title: str
@@ -390,25 +538,15 @@ def wiki_article(
             404,
         )
 
-    logger.debug(f"Fetching {title} from {base_url}")
+    # Get article info using cached function
+    try:
+        article_info = fetch_article_info(base_url, title)
+        page = article_info["query"]["pages"].popitem()[1]
 
-    # Check if the article is something we need to handle differently
-    info_api_request = urllib.request.Request(
-        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500",
-        headers=HEADERS,
-    )
-
-    category_members = []
-    interwiki = []
-    badges = []
-    categories = []
-
-    with urllib.request.urlopen(info_api_request) as response:
-        logger.debug(
-            f"Tried to fetch info for {title} from {info_api_request.full_url}"
-        )
-        data = json.loads(response.read().decode())
-        page = data["query"]["pages"].popitem()[1]
+        category_members = []
+        interwiki = []
+        badges = []
+        categories = []
 
         langlinks = page.get("langlinks", [])
 
@@ -450,78 +588,28 @@ def wiki_article(
                     badge_id = prop.replace("wikibase-badge-", "")
 
                     # Fetch the badge data from Wikidata
-                    badge_request = urllib.request.Request(
-                        f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}",
-                        headers=HEADERS,
+                    badge_data = fetch_badge_data(badge_id, lang)
+
+                    badge = badge_data["entities"][badge_id]["labels"][lang]["value"]
+                    badge_image = badge_data["entities"][badge_id]["claims"]["P18"][0][
+                        "mainsnak"
+                    ]["datavalue"]["value"]
+                    badges.append(
+                        {
+                            "title": badge,
+                            "url": f"https://www.wikidata.org/wiki/{badge_id}",
+                            "image": get_proxy_url(
+                                f"https://commons.wikimedia.org/wiki/Special:Redirect/file/{badge_image}"
+                            ),
+                        }
                     )
-
-                    with urllib.request.urlopen(badge_request) as badge_response:
-                        logger.debug(
-                            f"Tried to fetch badge {badge_id} from {badge_request.full_url}"
-                        )
-
-                        badge_data = json.loads(badge_response.read().decode())
-
-                        badge = badge_data["entities"][badge_id]["labels"][lang][
-                            "value"
-                        ]
-                        badge_image = badge_data["entities"][badge_id]["claims"]["P18"][
-                            0
-                        ]["mainsnak"]["datavalue"]["value"]
-                        badges.append(
-                            {
-                                "title": badge,
-                                "url": f"https://www.wikidata.org/wiki/{badge_id}",
-                                "image": get_proxy_url(
-                                    f"https://commons.wikimedia.org/wiki/Special:Redirect/file/{badge_image}"
-                                ),
-                            }
-                        )
 
                 except Exception as e:
                     logger.error(f"Error fetching badge {prop}: {e}")
 
         # If the article is a category, fetch the category members
         if "categoryinfo" in page:
-            category_api_url = f"{base_url}/w/api.php?action=query&format=json&list=categorymembers&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
-
-            category_api_request = urllib.request.Request(
-                category_api_url,
-                headers=HEADERS,
-            )
-
-            all_members = []
-
-            with urllib.request.urlopen(category_api_request) as category_api_response:
-                logger.debug(
-                    f"Tried to fetch category members for {title} from {category_api_request.full_url}"
-                )
-                data = json.loads(category_api_response.read().decode())
-                category_members = data["query"]["categorymembers"]
-                all_members += category_members
-
-                if "continue" in data:
-                    continue_params = f"&cmcontinue={data['continue']['cmcontinue']}"
-                    category_api_request = urllib.request.Request(
-                        category_api_url + continue_params,
-                        headers=HEADERS,
-                    )
-
-                    with urllib.request.urlopen(
-                        category_api_request
-                    ) as category_api_response:
-                        data = json.loads(category_api_response.read().decode())
-                        all_members += data["query"]["categorymembers"]
-
-            category_members = all_members
-
-            for member in category_members:
-                member["url"] = url_for(
-                    "wiki_article",
-                    project=project,
-                    lang=lang,
-                    title=member["title"],
-                )
+            category_members = fetch_category_members(base_url, title, project, lang)
 
         # Get categories the article is in
         if "categories" in page:
@@ -535,25 +623,25 @@ def wiki_article(
                     title=category["title"],
                 )
 
+    except Exception as e:
+        logger.error(f"Error fetching article info: {e}")
+        return (
+            render_template(
+                "article.html",
+                title="Error",
+                content=f"An error occurred while fetching information about the article {title}.",
+                lang=lang,
+                project=project,
+            ),
+            500,
+        )
+
     interwiki = langsort(interwiki)
 
-    # Prepare the API request to fetch the article content
-    api_request = urllib.request.Request(
-        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
-        headers=HEADERS,
-    )
-
-    logger.debug(f"Article content URL: {api_request.full_url}")
-
-    # Add the `variant` header if the `variant` query parameter is present
-    # This is used to fetch articles in a specific script variant (https://www.mediawiki.org/wiki/Writing_systems/LanguageConverter)
-    if request.args.get("variant", None):
-        api_request.add_header("Accept-Language", f"{request.args['variant']}")
-
-    # Fetch the article content
+    # Fetch article content using cached function
     try:
-        with urllib.request.urlopen(api_request) as response:
-            article_html = response.read().decode()
+        variant = request.args.get("variant", None)
+        article_html = fetch_article_content(base_url, title, variant)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return (
@@ -568,7 +656,6 @@ def wiki_article(
             )
         else:
             logger.error(f"Error fetching article {title} from {lang}.{project}: {e}")
-            logger.debug(f"Attempted URL: {api_request.full_url}")
             logger.debug(f"Response: {e.read()}")
             return (
                 render_template(
@@ -703,20 +790,7 @@ def wiki_article(
     processed_html = str(body)
 
     # Get license information for the article
-    if base_url not in app.licenses:
-        try:
-            mediawiki_api_request = urllib.request.Request(
-                f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(' ', '_')), True)}",
-                headers=HEADERS,
-            )
-            mediawiki_api_response = urllib.request.urlopen(mediawiki_api_request)
-            mediawiki_api_data = json.loads(mediawiki_api_response.read().decode())
-            app.licenses[base_url] = license = mediawiki_api_data["license"]
-        except Exception:
-            license = None
-
-    else:
-        license = app.licenses[base_url]
+    license = fetch_license_info(base_url, title)
 
     # Render the article
     return render_template(
@@ -735,20 +809,7 @@ def wiki_article(
 
 
 @app.route("/<project>/<lang>/search/<path:query>")
-def search_results(
-    project: str, lang: str, query: str
-) -> Union[Text, Tuple[Text, int]]:
-    """Retrieve search results from a Wikimedia project.
-
-    Args:
-        project (str): The Wikimedia project code.
-        lang (str): The language code.
-        query (str): The search query.
-
-    Returns:
-        str|Tuple[str, int]: The rendered search results, or an error message with a status code.
-    """
-
+def search_results(project, lang, query):
     language_projects = app.languages.get(lang, {}).get("projects", {})
     base_url = language_projects.get(project)
 
@@ -768,20 +829,9 @@ def search_results(
 
     logger.debug(f"Searching {base_url} for {query}")
 
-    srquery = escape(quote(query.replace(" ", "_")), True)
-
-    url = (
-        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
-    )
-
-    logger.debug(f"Fetching search results from {url}")
-
     try:
-        with urllib.request.urlopen(url) as response:
-            data = json.loads(response.read().decode())
-        search_results = data["query"]["search"]
-    except Exception as e:
-        logger.error(f"Error fetching search results: {e}")
+        search_results = fetch_search_results(base_url, query)
+    except Exception:
         return (
             render_template(
                 "article.html",

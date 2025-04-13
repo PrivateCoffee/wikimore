@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wikimore"
-version = "0.1.10"
+version = "0.1.11"
 authors = [{ name = "Private.coffee Team", email = "support@private.coffee" }]
 description = "A simple frontend for Wikimedia wikis"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["flask", "bs4"]
+dependencies = ["flask", "bs4", "flask-caching"]
 
 [project.scripts]
 wikimore = "wikimore.app:main"
