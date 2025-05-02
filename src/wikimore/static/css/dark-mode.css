@@ -22,6 +22,10 @@
 }
 
 body.dark-mode {
+    color-scheme: dark;
+    --text-color: var(--dark-text-color);
+    --bg-color: var(--dark-bg-color);
+    --input-bg: var(--dark-search-bg);
     background-color: var(--dark-bg-color);
     color: var(--dark-text-color);
 }
@@ -248,11 +252,11 @@ body.dark-mode {
     border-radius: 50%;
 }
 
-.dark-mode-toggle input:checked + .switch-track {
+.dark-mode-toggle input:checked+.switch-track {
     background-color: #3949ab;
 }
 
-.dark-mode-toggle input:checked + .switch-track:before {
+.dark-mode-toggle input:checked+.switch-track:before {
     transform: translateX(26px);
 }
 

@@ -1,3 +1,24 @@
+/* Light/Dark mode switching fixes */
+:root {
+    color-scheme: light;
+    --text-color: #333;
+    --bg-color: #f8f9fa;
+    --input-bg: #fff;
+}
+
+body {
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
+
+input,
+select,
+textarea,
+button {
+    color: var(--text-color);
+    background-color: var(--input-bg);
+}
+
 /* General styling */
 body {
     font-family: Arial, sans-serif;
