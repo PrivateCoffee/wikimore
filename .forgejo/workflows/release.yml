@@ -9,6 +9,7 @@ on:
 jobs:
   publish:
     name: Publish to PyPI
+    runs-on: docker
     container:
       image: node:20-bookworm
 
