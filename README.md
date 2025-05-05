@@ -46,7 +46,7 @@ This project is still in development and more features will be added in the futu
 
 ### Adding Your Instance
 
-To add your own instance to this list, please open a pull request or issue, see below.
+To add your own instance to this list, please modify [instances.json](./instances.json), run [ilgen](https://pypi.org/project/ilgen/), and open a pull request, or just open an issue letting us know about your instance, see below.
 
 ## Opening Issues
 

@@ -89,5 +89,15 @@
             "url": "https://dc09.ru"
         },
         "location": "RU"
+    },
+    {
+        "name": "wikipedia.sudovanilla.org",
+        "url": "https://wikipedia.sudovanilla.org",
+        "type": "clearnet",
+        "provider": {
+            "name": "Sudovanilla",
+            "url": "https://sudovanilla.org"
+        },
+        "location": "US"
     }
 ]
