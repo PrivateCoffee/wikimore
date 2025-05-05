@@ -30,6 +30,7 @@ This project is still in development and more features will be added in the futu
 | [wikimore.lumaeris.com](https://wikimore.lumaeris.com)           | [Lumaeris](https://lumaeris.com)               | Germany 🇩🇪 🇪🇺         |               |
 | [wikimore.darkness.services](https://wikimore.darkness.services) | [Darkness.services](https://darkness.services) | United States 🇺🇸      |               |
 | [wp.dc09.ru](https://wp.dc09.ru)                                 | [dc09.ru](https://dc09.ru)                     | Russian Federation 🇷🇺 |               |
+| [wikipedia.sudovanilla.org](https://wikipedia.sudovanilla.org)                                 | [SudoVanilla](https://sudovanilla.org)                     | United States 🇺🇸 |               |
 
 <!-- END_INSTANCE_LIST -->
 
