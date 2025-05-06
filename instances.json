@@ -95,7 +95,7 @@
         "url": "https://wikipedia.sudovanilla.org",
         "type": "clearnet",
         "provider": {
-            "name": "Sudovanilla",
+            "name": "SudoVanilla",
             "url": "https://sudovanilla.org"
         },
         "location": "US"
