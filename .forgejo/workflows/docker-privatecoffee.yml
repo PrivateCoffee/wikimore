@@ -12,6 +12,7 @@ jobs:
     runs-on: docker-privileged
     container:
       image: node:22-bookworm
+      options: ["--privileged"]
     steps:
       - name: Install dependencies
         run: |
