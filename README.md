@@ -125,6 +125,20 @@ flask --app wikimore run
 
 5. Open your browser and navigate to `http://localhost:5000`
 
+## Configuration
+
+You can configure Wikimore using environment variables. The following variables are available:
+
+| Variable                   | Description                                                                | Default Value                       |
+| -------------------------- | -------------------------------------------------------------------------- | ----------------------------------- |
+| WIKIMORE_HOST              | Which host / IP to listen on.                                              | 0.0.0.0                             |
+| WIKIMORE_PORT              | Which port to listen on                                                    | 8109                                |
+| WIKIMORE_DEBUG             | Enable debug mode (True if set to any value)                               | False                               |
+| WIKIMORE_INSTANCE_HOSTNAME | The hostname of your instance, used in the User-Agent header               | (auto-detected)                     |
+| WIKIMORE_ADMIN_EMAIL       | Email address of the instance administrator, used in the User-Agent header | (not set)                           |
+| WIKIMORE_NO_LANGSORT       | Disable custom language sorting (True if set to any value)                 | False                               |
+| WIKIMORE_LANGSORT          | Custom language sorting, comma-separated list of language codes            | en,es,ja,de,fr,zh,ru,it,pt,pl,nl,ar |
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

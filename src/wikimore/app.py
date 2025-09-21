@@ -38,8 +38,8 @@ def get_version() -> str:
 
 
 def get_instance_hostname() -> str:
-    """Get the hostname of the current instance. 
-    
+    """Get the hostname of the current instance.
+
     Checks the `WIKIMORE_INSTANCE_HOSTNAME` environment variable first,
     then the `X-Forwarded-Host` header, and finally falls back to `request.host`.
 
@@ -219,12 +219,15 @@ def get_active_users() -> Dict[str, int]:
     return sorted(active_users.items(), key=lambda x: x[1], reverse=True)
 
 
-if os.environ.get("NO_LANGSORT", False):
+if os.environ.get("WIKIMORE_NO_LANGSORT", os.environ.get("NO_LANGSORT", False)):
     LANGSORT = []
-elif os.environ.get("LANGSORT") == "auto":
+elif (
+    langsort_env := os.environ.get("WIKIMORE_LANGSORT", os.environ.get("LANGSORT"))
+    == "auto"
+):
     LANGSORT = [lang for lang, _ in get_active_users()[:50]]
-elif os.environ.get("LANGSORT"):
-    LANGSORT = os.environ["LANGSORT"].split(",")
+elif langsort_env:
+    LANGSORT = langsort_env.split(",")
 else:
     # Opinionated sorting of languages
     LANGSORT = [
@@ -941,11 +944,20 @@ def index_php_redirect(project, lang) -> Response:
     )
 
 
+@app.route("/version")
+def version() -> Text:
+    """Returns the current version of the application as JSON."""
+    return Response(
+        json.dumps({"version": get_version()}),
+        mimetype="application/json",
+    )
+
+
 def main():
     """Start the Flask app."""
-    port = int(os.environ.get("PORT", 8109))
-    host = os.environ.get("HOST", "0.0.0.0")
-    debug = os.environ.get("DEBUG", False)
+    port = int(os.environ.get("WIKIMORE_PORT", os.environ.get("PORT", 8109)))
+    host = os.environ.get("WIKIMORE_HOST", os.environ.get("HOST", "0.0.0.0"))
+    debug = os.environ.get("WIKIMORE_DEBUG", os.environ.get("DEBUG", False))
     app.run(port=port, host=host, debug=debug)
 
 
