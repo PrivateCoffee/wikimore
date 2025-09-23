@@ -125,15 +125,20 @@ flask --app wikimore run
 
 You can configure Wikimore using environment variables. The following variables are available:
 
-| Variable                   | Description                                                                | Default Value                       |
-| -------------------------- | -------------------------------------------------------------------------- | ----------------------------------- |
-| WIKIMORE_HOST              | Which host / IP to listen on.                                              | 0.0.0.0                             |
-| WIKIMORE_PORT              | Which port to listen on                                                    | 8109                                |
-| WIKIMORE_DEBUG             | Enable debug mode (True if set to any value)                               | False                               |
-| WIKIMORE_INSTANCE_HOSTNAME | The hostname of your instance, used in the User-Agent header               | (auto-detected)                     |
-| WIKIMORE_ADMIN_EMAIL       | Email address of the instance administrator, used in the User-Agent header | (not set)                           |
-| WIKIMORE_NO_LANGSORT       | Disable custom language sorting (True if set to any value)                 | False                               |
-| WIKIMORE_LANGSORT          | Custom language sorting, comma-separated list of language codes            | en,es,ja,de,fr,zh,ru,it,pt,pl,nl,ar |
+| Variable                   | Description                                                                               | Default Value                       |
+| -------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------- |
+| WIKIMORE_HOST              | Which host / IP to listen on.                                                             | 0.0.0.0                             |
+| WIKIMORE_PORT              | Which port to listen on                                                                   | 8109                                |
+| WIKIMORE_SOCKET            | Path to a UNIX socket to listen on (overrides WIKIMORE_HOST and WIKIMORE_PORT)            | (not set)                           |
+| WIKIMORE_DEBUG             | Enable debug mode (True if set to any value)                                              | False                               |
+| WIKIMORE_INSTANCE_HOSTNAME | The hostname of your instance, used in the User-Agent header                              | (auto-detected)                     |
+| WIKIMORE_ADMIN_EMAIL       | Email address of the instance administrator, used in the User-Agent header                | (not set)                           |
+| WIKIMORE_NO_LANGSORT       | Disable custom language sorting (True if set to any value)                                | False                               |
+| WIKIMORE_LANGSORT          | Custom language sorting, comma-separated list of language codes                           | en,es,ja,de,fr,zh,ru,it,pt,pl,nl,ar |
+| WIKIMORE_CACHE_TYPE        | The type of cache to use (SimpleCache, FileSystemCache, RedisCache)                       | SimpleCache                         |
+| WIKIMORE_CACHE_DIR         | The directory to use for FileSystemCache (only if WIKIMORE_CACHE_TYPE is FileSystemCache) | /tmp/wikimore_cache                 |
+| WIKIMORE_REDIS_URL         | The Redis URL to use for RedisCache (if set, WIKIMORE_CACHE_TYPE is RedisCache)           | (not set)                           |
+| WIKIMORE_CACHE_TIMEOUT     | The cache timeout in seconds                                                              | 3600 (= 1 hour)                     |
 
 ## License
 

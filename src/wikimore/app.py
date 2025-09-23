@@ -6,15 +6,18 @@ from flask import (
     url_for,
     Response,
 )
+
 import urllib.request
 from urllib.parse import urlencode, urlparse, quote
 from html import escape
 import json
 import os
+import sys
 import logging
 import pathlib
 import importlib.metadata
 from typing import Dict, Union, Tuple, Text
+
 from bs4 import BeautifulSoup
 
 from .cache import cache
@@ -958,7 +961,19 @@ def main():
     port = int(os.environ.get("WIKIMORE_PORT", os.environ.get("PORT", 8109)))
     host = os.environ.get("WIKIMORE_HOST", os.environ.get("HOST", "0.0.0.0"))
     debug = os.environ.get("WIKIMORE_DEBUG", os.environ.get("DEBUG", False))
-    app.run(port=port, host=host, debug=debug)
+    socket = os.environ.get("WIKIMORE_SOCKET", os.environ.get("SOCKET", None))
+
+    if socket:
+        if os.path.exists(socket):
+            os.remove(socket)
+        if not socket.startswith("unix:"):
+            if not socket.startswith("/"):
+                logger.fatal("Socket path must be absolute")
+                sys.exit(1)
+            socket = f"unix://{socket}"
+        app.run(debug=debug, host=socket)
+    else:
+        app.run(port=port, host=host, debug=debug)
 
 
 if __name__ == "__main__":
