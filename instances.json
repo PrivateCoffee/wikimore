@@ -31,12 +31,22 @@
         "location": "DE"
     },
     {
-        "name": "wm2.bloat.cat",
-        "url": "https://wm2.bloat.cat",
+        "name": "wp.dc09.ru",
+        "url": "https://wp.dc09.ru",
         "type": "clearnet",
         "provider": {
-            "name": "Bloat.cat",
-            "url": "https://bloat.cat"
+            "name": "dc09.ru",
+            "url": "https://dc09.ru"
+        },
+        "location": "RU"
+    },
+    {
+        "name": "wikimore.privadency.com",
+        "url": "https://wikimore.privadency.com",
+        "type": "clearnet",
+        "provider": {
+            "name": "privadency",
+            "url": "https://privadency.com"
         },
         "location": "DE"
     },
@@ -48,56 +58,7 @@
             "name": "Blitzw.in",
             "url": "https://blitzw.in"
         },
-        "location": "DK"
-    },
-    {
-        "name": "wikimore.lumaeris.com",
-        "url": "https://wikimore.lumaeris.com",
-        "type": "clearnet",
-        "provider": {
-            "name": "Lumaeris",
-            "url": "https://lumaeris.com"
-        },
-        "location": "DE"
-    },
-    {
-        "name": "wikimore.darkness.services",
-        "url": "https://wikimore.darkness.services",
-        "type": "clearnet",
-        "provider": {
-            "name": "Darkness.services",
-            "url": "https://darkness.services"
-        },
-        "location": "US"
-    },
-    {
-        "name": "wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion",
-        "url": "http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion",
-        "type": "onion",
-        "provider": {
-            "name": "Darkness.services",
-            "url": "https://darkness.services"
-        },
-        "location": "US"
-    },
-    {
-        "name": "wp.dc09.ru",
-        "url": "https://wp.dc09.ru",
-        "type": "clearnet",
-        "provider": {
-            "name": "dc09.ru",
-            "url": "https://dc09.ru"
-        },
-        "location": "RU"
-    },
-    {
-        "name": "wikipedia.sudovanilla.org",
-        "url": "https://wikipedia.sudovanilla.org",
-        "type": "clearnet",
-        "provider": {
-            "name": "SudoVanilla",
-            "url": "https://sudovanilla.org"
-        },
-        "location": "US"
+        "location": "DK",
+        "notes": "Runs on modified code"
     }
 ]

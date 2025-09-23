@@ -21,16 +21,13 @@ This project is still in development and more features will be added in the futu
 
 <!-- START_INSTANCE_LIST type:eq=clearnet -->
 
-| URL                                                              | Provided by                                    | Country               | Notes         |
-| ---------------------------------------------------------------- | ---------------------------------------------- | --------------------- | ------------- |
-| [wikimore.private.coffee](https://wikimore.private.coffee)       | [Private.coffee](https://private.coffee)       | Austria 🇦🇹 🇪🇺         | Main instance |
-| [wm.bloat.cat](https://wm.bloat.cat)                             | [Bloat.cat](https://bloat.cat)                 | Germany 🇩🇪 🇪🇺         |               |
-| [wm2.bloat.cat](https://wm2.bloat.cat)                           | [Bloat.cat](https://bloat.cat)                 | Germany 🇩🇪 🇪🇺         |               |
-| [wikimore.blitzw.in](https://wikimore.blitzw.in)                 | [Blitzw.in](https://blitzw.in)                 | Denmark 🇩🇰 🇪🇺         |               |
-| [wikimore.lumaeris.com](https://wikimore.lumaeris.com)           | [Lumaeris](https://lumaeris.com)               | Germany 🇩🇪 🇪🇺         |               |
-| [wikimore.darkness.services](https://wikimore.darkness.services) | [Darkness.services](https://darkness.services) | United States 🇺🇸      |               |
-| [wp.dc09.ru](https://wp.dc09.ru)                                 | [dc09.ru](https://dc09.ru)                     | Russian Federation 🇷🇺 |               |
-| [wikipedia.sudovanilla.org](https://wikipedia.sudovanilla.org)   | [SudoVanilla](https://sudovanilla.org)         | United States 🇺🇸      |               |
+| URL                                                        | Provided by                              | Country               | Notes                 |
+| ---------------------------------------------------------- | ---------------------------------------- | --------------------- | --------------------- |
+| [wikimore.private.coffee](https://wikimore.private.coffee) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺         | Main instance         |
+| [wm.bloat.cat](https://wm.bloat.cat)                       | [Bloat.cat](https://bloat.cat)           | Germany 🇩🇪 🇪🇺         |                       |
+| [wp.dc09.ru](https://wp.dc09.ru)                           | [dc09.ru](https://dc09.ru)               | Russian Federation 🇷🇺 |                       |
+| [wikimore.privadency.com](https://wikimore.privadency.com) | [privadency](https://privadency.com)     | Germany 🇩🇪 🇪🇺         |                       |
+| [wikimore.blitzw.in](https://wikimore.blitzw.in)           | [Blitzw.in](https://blitzw.in)           | Denmark 🇩🇰 🇪🇺         | Runs on modified code |
 
 <!-- END_INSTANCE_LIST -->
 
@@ -38,16 +35,15 @@ This project is still in development and more features will be added in the futu
 
 <!-- START_INSTANCE_LIST type:eq=onion -->
 
-| URL                                                                                                                                                       | Provided by                                    | Country          | Notes |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------- | ----- |
-| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion) | [Private.coffee](https://private.coffee)       | Austria 🇦🇹 🇪🇺    |       |
-| [wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion](http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion) | [Darkness.services](https://darkness.services) | United States 🇺🇸 |       |
+| URL                                                                                                                                                       | Provided by                              | Country       | Notes |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------- | ----- |
+| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺 |       |
 
 <!-- END_INSTANCE_LIST -->
 
 ### Adding Your Instance
 
-To add your own instance to this list, please modify [instances.json](./instances.json), run [ilgen](https://pypi.org/project/ilgen/), and open a pull request, or just open an issue letting us know about your instance, see below.
+To add your own instance to this list, please modify [instances.json](./instances.json), run [ilgen](https://pypi.org/project/ilgen/) to update README.md, and open a pull request, or just open an issue letting us know about your instance, see below.
 
 ## Opening Issues
 
