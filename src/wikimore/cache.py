@@ -13,6 +13,7 @@ if redis_url := os.environ.get("WIKIMORE_REDIS_URL", os.environ.get("REDIS_URL")
         "CACHE_TYPE": "RedisCache",
         "CACHE_REDIS_URL": redis_url,
     })
+
 # File system cache if specified
 elif config["CACHE_TYPE"] == "FileSystemCache":
     cache_dir = os.environ.get("WIKIMORE_CACHE_DIR", os.environ.get("CACHE_DIR", "/tmp/wikimore_cache"))
