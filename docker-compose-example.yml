@@ -10,8 +10,34 @@ services:
     cap_drop:
       - ALL
     read_only: true
+    environment:
+      # You can override any of these as needed, or comment them out.
+      WIKIMORE_HOST: 0.0.0.0 # Bind to all interfaces inside the container - if you want to change the outside host, change the "ports" section above
+      WIKIMORE_PORT: 8109 # Port inside the container - if you want to change the outside port, change the "ports" section above
+      WIKIMORE_SOCKET: "" # e.g. /tmp/wikimore.sock - not usually used with Docker
+      WIKIMORE_DEBUG: "0" # Set to "1" to enable debug mode
+      WIKIMORE_INSTANCE_HOSTNAME: "" # e.g. wikimore.example.com - used in the User-Agent string sent to Wikipedia
+      WIKIMORE_ADMIN_EMAIL: "" # An email address to include in the User-Agent string sent to Wikipedia
+      WIKIMORE_NO_LANGSORT: "" # Set to "1" to disable language sorting (by popularity unless WIKIMORE_LANGSORT is set)
+      WIKIMORE_LANGSORT: "" # A comma-separated list of language codes to sort languages by
+      WIKIMORE_CACHE_TYPE: "RedisCache" # Options: "SimpleCache", "FileSystemCache", "RedisCache"
+      WIKIMORE_CACHE_TIMEOUT: "3600" # Cache timeout in seconds, default is 1 hour
+      WIKIMORE_REDIS_URL: "redis://wikimore-redis:6379/0" # Redis connection URL, needed if using RedisCache
+      WIKIMORE_CACHE_DIR: "" # e.g. /data/cache - required if using FileSystemCache, must be a writable directory
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 300M
+
+  wikimore-redis:
+    container_name: wikimore-redis
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - wikimore-redis-data:/data
+
+volumes:
+  wikimore-redis-data:
+    driver: local

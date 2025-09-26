@@ -21,16 +21,13 @@ This project is still in development and more features will be added in the futu
 
 <!-- START_INSTANCE_LIST type:eq=clearnet -->
 
-| URL                                                              | Provided by                                    | Country               | Notes         |
-| ---------------------------------------------------------------- | ---------------------------------------------- | --------------------- | ------------- |
-| [wikimore.private.coffee](https://wikimore.private.coffee)       | [Private.coffee](https://private.coffee)       | Austria 🇦🇹 🇪🇺         | Main instance |
-| [wm.bloat.cat](https://wm.bloat.cat)                             | [Bloat.cat](https://bloat.cat)                 | Germany 🇩🇪 🇪🇺         |               |
-| [wm2.bloat.cat](https://wm2.bloat.cat)                           | [Bloat.cat](https://bloat.cat)                 | Germany 🇩🇪 🇪🇺         |               |
-| [wikimore.blitzw.in](https://wikimore.blitzw.in)                 | [Blitzw.in](https://blitzw.in)                 | Denmark 🇩🇰 🇪🇺         |               |
-| [wikimore.lumaeris.com](https://wikimore.lumaeris.com)           | [Lumaeris](https://lumaeris.com)               | Germany 🇩🇪 🇪🇺         |               |
-| [wikimore.darkness.services](https://wikimore.darkness.services) | [Darkness.services](https://darkness.services) | United States 🇺🇸      |               |
-| [wp.dc09.ru](https://wp.dc09.ru)                                 | [dc09.ru](https://dc09.ru)                     | Russian Federation 🇷🇺 |               |
-| [wikipedia.sudovanilla.org](https://wikipedia.sudovanilla.org)   | [SudoVanilla](https://sudovanilla.org)         | United States 🇺🇸      |               |
+| URL                                                        | Provided by                              | Country               | Notes                 |
+| ---------------------------------------------------------- | ---------------------------------------- | --------------------- | --------------------- |
+| [wikimore.private.coffee](https://wikimore.private.coffee) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺         | Main instance         |
+| [wm.bloat.cat](https://wm.bloat.cat)                       | [Bloat.cat](https://bloat.cat)           | Germany 🇩🇪 🇪🇺         |                       |
+| [wp.dc09.ru](https://wp.dc09.ru)                           | [dc09.ru](https://dc09.ru)               | Russian Federation 🇷🇺 |                       |
+| [wikimore.privadency.com](https://wikimore.privadency.com) | [privadency](https://privadency.com)     | Germany 🇩🇪 🇪🇺         |                       |
+| [wikimore.blitzw.in](https://wikimore.blitzw.in)           | [Blitzw.in](https://blitzw.in)           | Denmark 🇩🇰 🇪🇺         | Runs on modified code |
 
 <!-- END_INSTANCE_LIST -->
 
@@ -38,16 +35,15 @@ This project is still in development and more features will be added in the futu
 
 <!-- START_INSTANCE_LIST type:eq=onion -->
 
-| URL                                                                                                                                                       | Provided by                                    | Country          | Notes |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------- | ----- |
-| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion) | [Private.coffee](https://private.coffee)       | Austria 🇦🇹 🇪🇺    |       |
-| [wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion](http://wikimore.darknessrdor43qkl2ngwitj72zdavfz2cead4t5ed72bybgauww5lyd.onion) | [Darkness.services](https://darkness.services) | United States 🇺🇸 |       |
+| URL                                                                                                                                                       | Provided by                              | Country       | Notes |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------- | ----- |
+| [wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion](http://wikimore.coffee2m3bjsrrqqycx6ghkxrnejl2q6nl7pjw2j4clchjj6uk5zozad.onion) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺 |       |
 
 <!-- END_INSTANCE_LIST -->
 
 ### Adding Your Instance
 
-To add your own instance to this list, please modify [instances.json](./instances.json), run [ilgen](https://pypi.org/project/ilgen/), and open a pull request, or just open an issue letting us know about your instance, see below.
+To add your own instance to this list, please modify [instances.json](./instances.json), run [ilgen](https://pypi.org/project/ilgen/) to update README.md, and open a pull request, or just open an issue letting us know about your instance, see below.
 
 ## Opening Issues
 
@@ -124,6 +120,25 @@ flask --app wikimore run
 ```
 
 5. Open your browser and navigate to `http://localhost:5000`
+
+## Configuration
+
+You can configure Wikimore using environment variables. The following variables are available:
+
+| Variable                   | Description                                                                               | Default Value                       |
+| -------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------- |
+| WIKIMORE_HOST              | Which host / IP to listen on.                                                             | 0.0.0.0                             |
+| WIKIMORE_PORT              | Which port to listen on                                                                   | 8109                                |
+| WIKIMORE_SOCKET            | Path to a UNIX socket to listen on (overrides WIKIMORE_HOST and WIKIMORE_PORT)            | (not set)                           |
+| WIKIMORE_DEBUG             | Enable debug mode (True if set to any value)                                              | False                               |
+| WIKIMORE_INSTANCE_HOSTNAME | The hostname of your instance, used in the User-Agent header                              | (auto-detected)                     |
+| WIKIMORE_ADMIN_EMAIL       | Email address of the instance administrator, used in the User-Agent header                | (not set)                           |
+| WIKIMORE_NO_LANGSORT       | Disable custom language sorting (True if set to any value)                                | False                               |
+| WIKIMORE_LANGSORT          | Custom language sorting, comma-separated list of language codes                           | en,es,ja,de,fr,zh,ru,it,pt,pl,nl,ar |
+| WIKIMORE_CACHE_TYPE        | The type of cache to use (SimpleCache, FileSystemCache, RedisCache)                       | SimpleCache                         |
+| WIKIMORE_CACHE_DIR         | The directory to use for FileSystemCache (only if WIKIMORE_CACHE_TYPE is FileSystemCache) | /tmp/wikimore_cache                 |
+| WIKIMORE_REDIS_URL         | The Redis URL to use for RedisCache (if set, WIKIMORE_CACHE_TYPE is RedisCache)           | (not set)                           |
+| WIKIMORE_CACHE_TIMEOUT     | The cache timeout in seconds                                                              | 3600 (= 1 hour)                     |
 
 ## License
 

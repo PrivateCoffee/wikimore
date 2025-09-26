@@ -10,7 +10,7 @@ RUN apk add --no-cache py3-pip uwsgi-python3 && \
 COPY . /app
 
 RUN $APP_ENV/bin/pip install --no-cache-dir pip && \
-  $APP_ENV/bin/pip install /app && \
+  $APP_ENV/bin/pip install /app[redis] && \
   adduser -S -D -H wikimore
 
 COPY entrypoint.sh /entrypoint.sh

@@ -6,17 +6,21 @@ from flask import (
     url_for,
     Response,
 )
+
 import urllib.request
 from urllib.parse import urlencode, urlparse, quote
 from html import escape
 import json
 import os
+import sys
 import logging
 import pathlib
+import importlib.metadata
 from typing import Dict, Union, Tuple, Text
+
 from bs4 import BeautifulSoup
+
 from .cache import cache
-import hashlib
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -25,6 +29,71 @@ logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
+
+
+def get_version() -> str:
+    """Get the current version of the application."""
+    try:
+        version = importlib.metadata.version("wikimore")
+    except importlib.metadata.PackageNotFoundError:
+        version = "dev"
+    return version
+
+
+def get_instance_hostname() -> str:
+    """Get the hostname of the current instance.
+
+    Checks the `WIKIMORE_INSTANCE_HOSTNAME` environment variable first,
+    then the `X-Forwarded-Host` header, and finally falls back to `request.host`.
+
+    Args:
+        request: The Flask request object.
+
+    Returns:
+        str: The hostname of the current instance.
+    """
+    if env_host := os.environ.get("WIKIMORE_INSTANCE_HOSTNAME"):
+        return env_host
+    try:
+        if "X-Forwarded-Host" in request.headers:
+            return request.headers["X-Forwarded-Host"]
+        return request.host
+    except RuntimeError:
+        return "unknown"
+
+
+def get_admin_email() -> str:
+    """Parse the admin email from the environment variable.
+
+    Returns:
+        str: The admin email address.
+    """
+    return os.environ.get("WIKIMORE_ADMIN_EMAIL")
+
+
+def urlopen(url, headers={}, **kwargs):
+    """A wrapper around `urllib.request.urlopen` that adds a User-Agent header.
+
+    The User-Agent includes the application name, version, hostname, and admin email if available.
+
+    Args:
+        url (str): The URL to open.
+        headers (dict): Additional headers to include in the request.
+        **kwargs: Additional keyword arguments to pass to `urllib.request.urlopen`.
+
+    Returns:
+        HTTPResponse: The response from the URL.
+
+    Raises:
+        urllib.error.URLError: If there is an error opening the URL.
+    """
+    user_agent = f"Wikimore/{get_version()} (instance: {get_instance_hostname()}; admin: {get_admin_email() or 'not set'}; source: https://git.private.coffee/privatecoffee/wikimore)"
+
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": user_agent, **headers},
+    )
+    return urllib.request.urlopen(req, **kwargs)
 
 
 def create_app():
@@ -42,10 +111,6 @@ app = create_app()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
-HEADERS = {
-    "User-Agent": "Wikimore/dev (https://git.private.coffee/privatecoffee/wikimore)"
-}
-
 
 @cache.cached(timeout=86400, key_prefix="wikimedia_projects")
 def get_wikimedia_projects() -> (
@@ -62,7 +127,7 @@ def get_wikimedia_projects() -> (
                 - The language name.
     """
     url = "https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json"
-    with urllib.request.urlopen(url, timeout=30) as response:
+    with urlopen(url, timeout=30) as response:
         try:
             data = json.loads(response.read().decode())
         except json.JSONDecodeError as e:
@@ -148,7 +213,7 @@ def get_active_users() -> Dict[str, int]:
     for lang, data in app.languages.items():
         try:
             url = f"{data['projects']['wiki']}{path}"
-            with urllib.request.urlopen(url) as response:
+            with urlopen(url) as response:
                 data = json.loads(response.read().decode())
                 active_users[lang] = data["query"]["statistics"]["activeusers"]
         except Exception as e:
@@ -157,12 +222,15 @@ def get_active_users() -> Dict[str, int]:
     return sorted(active_users.items(), key=lambda x: x[1], reverse=True)
 
 
-if os.environ.get("NO_LANGSORT", False):
+if os.environ.get("WIKIMORE_NO_LANGSORT", os.environ.get("NO_LANGSORT", False)):
     LANGSORT = []
-elif os.environ.get("LANGSORT") == "auto":
+elif (
+    langsort_env := os.environ.get("WIKIMORE_LANGSORT", os.environ.get("LANGSORT"))
+    == "auto"
+):
     LANGSORT = [lang for lang, _ in get_active_users()[:50]]
-elif os.environ.get("LANGSORT"):
-    LANGSORT = os.environ["LANGSORT"].split(",")
+elif langsort_env:
+    LANGSORT = langsort_env.split(",")
 else:
     # Opinionated sorting of languages
     LANGSORT = [
@@ -288,7 +356,7 @@ def proxy() -> bytes:
 
     logger.debug(f"Proxying {url}")
 
-    with urllib.request.urlopen(url) as response:
+    with urlopen(url) as response:
         data = response.read()
     return data
 
@@ -372,19 +440,17 @@ def fetch_article_content(base_url, title, variant=None):
     """Fetches article content from the Wikimedia API with caching."""
     logger.debug(f"Fetching article content for {title} from {base_url}")
 
-    # Create a unique cache key for the article
-    api_request = urllib.request.Request(
-        f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}",
-        headers=HEADERS,
-    )
+    api_request_url = f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}"
 
-    logger.debug(f"Article content URL: {api_request.full_url}")
+    logger.debug(f"Article content URL: {api_request_url}")
+
+    headers = {}
 
     if variant:
-        api_request.add_header("Accept-Language", f"{variant}")
+        headers["Accept-Language"] = variant
 
     try:
-        with urllib.request.urlopen(api_request) as response:
+        with urlopen(api_request_url, headers) as response:
             article_html = response.read().decode()
             return article_html
     except urllib.error.HTTPError as e:
@@ -403,7 +469,7 @@ def fetch_search_results(base_url, query):
     logger.debug(f"Fetching search results from {url}")
 
     try:
-        with urllib.request.urlopen(url) as response:
+        with urlopen(url) as response:
             data = json.loads(response.read().decode())
         return data["query"]["search"]
     except Exception as e:
@@ -416,15 +482,10 @@ def fetch_article_info(base_url, title):
     """Fetches article metadata from the Wikimedia API with caching."""
     logger.debug(f"Fetching article info for {title} from {base_url}")
 
-    info_api_request = urllib.request.Request(
-        f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500",
-        headers=HEADERS,
-    )
+    article_info_url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500"
 
-    with urllib.request.urlopen(info_api_request) as response:
-        logger.debug(
-            f"Tried to fetch info for {title} from {info_api_request.full_url}"
-        )
+    with urlopen(article_info_url) as response:
+        logger.debug(f"Tried to fetch info for {title} from {article_info_url}")
         data = json.loads(response.read().decode())
         return data
 
@@ -432,13 +493,10 @@ def fetch_article_info(base_url, title):
 @cache.memoize(timeout=86400)  # 24 hours
 def fetch_badge_data(badge_id, lang):
     """Fetches badge data from Wikidata with caching."""
-    badge_request = urllib.request.Request(
-        f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}",
-        headers=HEADERS,
-    )
+    badge_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}"
 
-    with urllib.request.urlopen(badge_request) as badge_response:
-        logger.debug(f"Tried to fetch badge {badge_id} from {badge_request.full_url}")
+    with urlopen(badge_url) as badge_response:
+        logger.debug(f"Tried to fetch badge {badge_id} from {badge_url}")
         return json.loads(badge_response.read().decode())
 
 
@@ -447,16 +505,11 @@ def fetch_category_members(base_url, title, project, lang):
     """Fetches category members with caching."""
     category_api_url = f"{base_url}/w/api.php?action=query&format=json&list=categorymembers&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
 
-    category_api_request = urllib.request.Request(
-        category_api_url,
-        headers=HEADERS,
-    )
-
     all_members = []
 
-    with urllib.request.urlopen(category_api_request) as category_api_response:
+    with urlopen(category_api_url) as category_api_response:
         logger.debug(
-            f"Tried to fetch category members for {title} from {category_api_request.full_url}"
+            f"Tried to fetch category members for {title} from {category_api_url}"
         )
         data = json.loads(category_api_response.read().decode())
         category_members = data["query"]["categorymembers"]
@@ -464,12 +517,9 @@ def fetch_category_members(base_url, title, project, lang):
 
         if "continue" in data:
             continue_params = f"&cmcontinue={data['continue']['cmcontinue']}"
-            category_api_request = urllib.request.Request(
-                category_api_url + continue_params,
-                headers=HEADERS,
-            )
+            category_api_url = category_api_url + continue_params
 
-            with urllib.request.urlopen(category_api_request) as category_api_response:
+            with urlopen(category_api_url) as category_api_response:
                 data = json.loads(category_api_response.read().decode())
                 all_members += data["query"]["categorymembers"]
 
@@ -489,11 +539,8 @@ def fetch_license_info(base_url, title):
     """Fetches license information with caching."""
     if base_url not in app.licenses:
         try:
-            mediawiki_api_request = urllib.request.Request(
-                f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(' ', '_')), True)}",
-                headers=HEADERS,
-            )
-            mediawiki_api_response = urllib.request.urlopen(mediawiki_api_request)
+            mediawiki_api_url = f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(' ', '_')), True)}"
+            mediawiki_api_response = urlopen(mediawiki_api_url)
             mediawiki_api_data = json.loads(mediawiki_api_response.read().decode())
             app.licenses[base_url] = license = mediawiki_api_data["license"]
         except Exception:
@@ -891,7 +938,7 @@ def index_php_redirect(project, lang) -> Response:
                     content=f"Sorry, the project {project} does not exist in the {lang} language.",
                 ),
             )
-    with urllib.request.urlopen(url) as response:
+    with urlopen(url) as response:
         data = json.loads(response.read().decode())
     main_page = data["query"]["general"]["mainpage"]
 
@@ -900,12 +947,33 @@ def index_php_redirect(project, lang) -> Response:
     )
 
 
+@app.route("/version")
+def version() -> Text:
+    """Returns the current version of the application as JSON."""
+    return Response(
+        json.dumps({"version": get_version()}),
+        mimetype="application/json",
+    )
+
+
 def main():
     """Start the Flask app."""
-    port = int(os.environ.get("PORT", 8109))
-    host = os.environ.get("HOST", "0.0.0.0")
-    debug = os.environ.get("DEBUG", False)
-    app.run(port=port, host=host, debug=debug)
+    port = int(os.environ.get("WIKIMORE_PORT", os.environ.get("PORT", 8109)))
+    host = os.environ.get("WIKIMORE_HOST", os.environ.get("HOST", "0.0.0.0"))
+    debug = os.environ.get("WIKIMORE_DEBUG", os.environ.get("DEBUG", False))
+    socket = os.environ.get("WIKIMORE_SOCKET", os.environ.get("SOCKET", None))
+
+    if socket:
+        if os.path.exists(socket):
+            os.remove(socket)
+        if not socket.startswith("unix:"):
+            if not socket.startswith("/"):
+                logger.fatal("Socket path must be absolute")
+                sys.exit(1)
+            socket = f"unix://{socket}"
+        app.run(debug=debug, host=socket)
+    else:
+        app.run(port=port, host=host, debug=debug)
 
 
 if __name__ == "__main__":
