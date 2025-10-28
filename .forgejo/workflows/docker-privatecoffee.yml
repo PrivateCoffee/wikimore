@@ -11,7 +11,7 @@ jobs:
     name: Docker Build and Push to git.private.coffee
     runs-on: docker-privileged
     container:
-      image: node:22-bookworm
+      image: node:24-bookworm
       options: >-
         --privileged
     steps:

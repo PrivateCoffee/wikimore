@@ -11,7 +11,7 @@ jobs:
     name: Publish to PyPI
     runs-on: docker
     container:
-      image: node:22-bookworm
+      image: node:24-bookworm
 
     steps:
       - name: Check out code
