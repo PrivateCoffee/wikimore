@@ -22,12 +22,28 @@ from bs4 import BeautifulSoup
 
 from .cache import cache
 
-logging.basicConfig(level=logging.DEBUG)
+
+def env_flag(name: str, fallback: str | None = None) -> bool:
+    """Parse a boolean-like environment variable."""
+    value = os.environ.get(name)
+    if value is None and fallback:
+        value = os.environ.get(fallback)
+    if value is None:
+        return False
+
+    return value.strip().lower() not in {"", "0", "false", "no", "off"}
+
+
+DEBUG_ENABLED = env_flag("WIKIMORE_DEBUG", "DEBUG")
+LOG_LEVEL = logging.DEBUG if DEBUG_ENABLED else logging.INFO
 
 logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+logger.propagate = False
+logger.handlers.clear()
 
 handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
+handler.setLevel(LOG_LEVEL)
 logger.addHandler(handler)
 
 
@@ -960,7 +976,7 @@ def main():
     """Start the Flask app."""
     port = int(os.environ.get("WIKIMORE_PORT", os.environ.get("PORT", 8109)))
     host = os.environ.get("WIKIMORE_HOST", os.environ.get("HOST", "0.0.0.0"))
-    debug = os.environ.get("WIKIMORE_DEBUG", os.environ.get("DEBUG", False))
+    debug = DEBUG_ENABLED
     socket = os.environ.get("WIKIMORE_SOCKET", os.environ.get("SOCKET", None))
 
     if socket:

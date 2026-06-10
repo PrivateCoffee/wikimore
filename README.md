@@ -130,7 +130,7 @@ You can configure Wikimore using environment variables. The following variables 
 | WIKIMORE_HOST              | Which host / IP to listen on.                                                             | 0.0.0.0                             |
 | WIKIMORE_PORT              | Which port to listen on                                                                   | 8109                                |
 | WIKIMORE_SOCKET            | Path to a UNIX socket to listen on (overrides WIKIMORE_HOST and WIKIMORE_PORT)            | (not set)                           |
-| WIKIMORE_DEBUG             | Enable debug mode (True if set to any value)                                              | False                               |
+| WIKIMORE_DEBUG             | Enable debug mode (`1`, `true`, `yes`, or `on`)                                           | False                               |
 | WIKIMORE_INSTANCE_HOSTNAME | The hostname of your instance, used in the User-Agent header                              | (auto-detected)                     |
 | WIKIMORE_ADMIN_EMAIL       | Email address of the instance administrator, used in the User-Agent header                | (not set)                           |
 | WIKIMORE_NO_LANGSORT       | Disable custom language sorting (True if set to any value)                                | False                               |
