@@ -20,7 +20,37 @@ from typing import Dict, Union, Tuple, Text
 
 from bs4 import BeautifulSoup
 
+import time
+
 from .cache import cache
+
+
+# Prefixes of the "File" namespace (namespace 6) in the most common languages.
+# "File:" and "Image:" are canonical aliases that work on ANY Wikimedia wiki
+# (including Commons), but links inside articles in other languages use the
+# localized namespace name. Detecting these lets file pages from es/de/fr/etc.
+# also go through the image viewer.
+FILE_NAMESPACE_PREFIXES = (
+    "File:", "Image:",                  # canonical (EN + alias, valid everywhere)
+    "Archivo:", "Imagen:",              # es
+    "Datei:", "Bild:",                  # de
+    "Fichier:",                         # fr
+    "Immagine:",                        # it
+    "Ficheiro:", "Arquivo:", "Imagem:", # pt / pt-br
+    "Bestand:", "Afbeelding:",          # nl
+    "Plik:",                            # pl
+    "Soubor:",                          # cs
+    "Tiedosto:",                        # fi
+    "Fil:",                             # sv / da / no
+    "Berkas:",                          # id
+    "Tập tin:", "Tập_tin:", "Hình:",    # vi
+    "Файл:",                            # ru / uk / bg / sr (cirilico)
+    "ファイル:",                         # ja
+    "파일:",                             # ko
+    "文件:", "檔案:", "圖像:", "图像:",     # zh (variantes)
+    "ملف:",                             # ar
+    "קובץ:",                            # he
+)
 
 
 def env_flag(name: str, fallback: str | None = None) -> bool:
@@ -110,6 +140,48 @@ def urlopen(url, headers={}, **kwargs):
         headers={"User-Agent": user_agent, **headers},
     )
     return urllib.request.urlopen(req, **kwargs)
+
+
+def urlopen_with_retry(url, headers=None, max_retries=3, base_delay=2, **kwargs):
+    """Wrapper around `urlopen` with retries for HTTP 429 (Too Many Requests).
+
+    Reuses `urlopen` (which already injects Wikimore's descriptive User-Agent),
+    so that ALL requests — including retries and fallbacks — identify themselves
+    properly to Wikimedia. Exponential backoff: 2s, 4s, 8s. Any other error is
+    raised immediately.
+
+    Args:
+        url: The URL to open.
+        headers: Optional dict of extra headers.
+        max_retries: Maximum number of retries.
+        base_delay: Base delay in seconds (doubled on each attempt).
+        **kwargs: Additional args passed to `urlopen` (e.g. timeout).
+
+    Returns:
+        The HTTP response object.
+
+    Raises:
+        urllib.error.HTTPError: If retries are exhausted or the error is not 429.
+    """
+    headers = headers or {}
+    last_error = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return urlopen(url, headers=headers, **kwargs)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < max_retries:
+                delay = base_delay * (2 ** attempt)
+                logger.warning(
+                    f"HTTP 429 on {url[:80]}... Retrying in {delay}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                time.sleep(delay)
+                last_error = e
+                continue
+            raise
+
+    raise last_error
 
 
 def create_app():
@@ -207,7 +279,48 @@ def get_wikimedia_projects() -> (
     return projects, languages
 
 
-app.wikimedia_projects, app.languages = get_wikimedia_projects()
+def get_wikimedia_projects_safe():
+    """Fetch Wikimedia projects with a fallback for rate limiting.
+
+    If the API request fails (429, IP block, network outage, etc.), returns a
+    minimal set of common projects so the server can still start. The full list
+    is refreshed as soon as the API becomes accessible again (the cache only
+    stores successful results).
+    """
+    try:
+        return get_wikimedia_projects()
+    except (urllib.error.URLError, json.JSONDecodeError, KeyError) as e:
+        logger.warning(
+            f"Could not fetch Wikimedia projects from the API ({e}). "
+            f"Using fallback list; it will refresh once the API is accessible."
+        )
+        projects = {
+            "wiki": "Wikipedia",
+            "commons": "Wikimedia Commons",
+            "wiktionary": "Wiktionary",
+            "wikiquote": "Wikiquote",
+            "wikibooks": "Wikibooks",
+            "wikisource": "Wikisource",
+            "wikinews": "Wikinews",
+            "wikivoyage": "Wikivoyage",
+        }
+        languages = {
+            "en": {"name": "English", "projects": {"wiki": "https://en.wikipedia.org", "wiktionary": "https://en.wiktionary.org", "wikiquote": "https://en.wikiquote.org", "wikibooks": "https://en.wikibooks.org", "wikisource": "https://en.wikisource.org", "wikinews": "https://en.wikinews.org", "wikivoyage": "https://en.wikivoyage.org"}},
+            "es": {"name": "Spanish", "projects": {"wiki": "https://es.wikipedia.org", "wiktionary": "https://es.wiktionary.org", "wikiquote": "https://es.wikiquote.org", "wikibooks": "https://es.wikibooks.org"}},
+            "fr": {"name": "French", "projects": {"wiki": "https://fr.wikipedia.org", "wiktionary": "https://fr.wiktionary.org", "wikiquote": "https://fr.wikiquote.org", "wikibooks": "https://fr.wikibooks.org"}},
+            "de": {"name": "German", "projects": {"wiki": "https://de.wikipedia.org", "wiktionary": "https://de.wiktionary.org", "wikiquote": "https://de.wikiquote.org", "wikibooks": "https://de.wikibooks.org"}},
+            "ja": {"name": "Japanese", "projects": {"wiki": "https://ja.wikipedia.org"}},
+            "zh": {"name": "Chinese", "projects": {"wiki": "https://zh.wikipedia.org"}},
+            "ru": {"name": "Russian", "projects": {"wiki": "https://ru.wikipedia.org"}},
+            "pt": {"name": "Portuguese", "projects": {"wiki": "https://pt.wikipedia.org"}},
+            "it": {"name": "Italian", "projects": {"wiki": "https://it.wikipedia.org"}},
+            "ar": {"name": "Arabic", "projects": {"wiki": "https://ar.wikipedia.org"}},
+            "special": {"name": "Special", "projects": {"commons": "https://commons.wikimedia.org"}},
+        }
+        return projects, languages
+
+
+app.wikimedia_projects, app.languages = get_wikimedia_projects_safe()
 app.licenses = {}
 
 logger.debug(
@@ -466,12 +579,136 @@ def fetch_article_content(base_url, title, variant=None):
         headers["Accept-Language"] = variant
 
     try:
-        with urlopen(api_request_url, headers) as response:
+        with urlopen_with_retry(api_request_url, headers=headers, max_retries=3) as response:
             article_html = response.read().decode()
             return article_html
     except urllib.error.HTTPError as e:
         # Re-raise the error to be handled by the calling function
         raise
+
+
+@cache.memoize(timeout=3600)  # 1 hour
+def fetch_file_page_fallback(base_url, title):
+    """Build an HTML viewer for files not hosted on the local wiki.
+
+    Handles Commons files by fetching their metadata via the API (imageinfo)
+    and building a simple but useful description page. The thumbnail
+    (upload.wikimedia.org) is served through the local proxy so the user's IP
+    is not leaked.
+    """
+    logger.debug(f"Building file page fallback for {title} from {base_url}")
+
+    # Normalize the namespace prefix to the canonical "File:". This way the
+    # query works both on the local wiki (which accepts "File:" as an alias)
+    # and on Commons (which does NOT understand "Archivo:", "Datei:", etc.).
+    if ":" in title:
+        filename = title.split(":", 1)[1]
+    else:
+        filename = title
+    canonical_title = f"File:{filename}"
+    encoded_title = quote(canonical_title.replace(" ", "_")).replace("/", "%2F")
+
+    # Try the local wiki first (fair-use files), then Commons
+    urls_to_try = [
+        f"{base_url}/w/api.php?action=query&titles={encoded_title}"
+        f"&prop=imageinfo&iiprop=url|size|mime|extmetadata|thumburl|thumbsize"
+        f"&iiurlwidth=800&format=json",
+        f"https://commons.wikimedia.org/w/api.php?action=query&titles={encoded_title}"
+        f"&prop=imageinfo&iiprop=url|size|mime|extmetadata|thumburl|thumbsize"
+        f"&iiurlwidth=800&format=json",
+    ]
+
+    for api_url in urls_to_try:
+        try:
+            with urlopen_with_retry(api_url, max_retries=3, timeout=30) as response:
+                data = json.loads(response.read().decode())
+                pages = data.get("query", {}).get("pages", {})
+
+                for page_id, page_info in pages.items():
+                    if "missing" in page_info:
+                        continue  # Try next URL
+
+                    imageinfo = page_info.get("imageinfo", [{}])[0]
+                    if not imageinfo:
+                        continue
+
+                    img_url = imageinfo.get("url", "")
+                    thumb_url = imageinfo.get("thumburl", img_url)
+                    mime = imageinfo.get("mime", "")
+                    width = imageinfo.get("width", "")
+                    height = imageinfo.get("height", "")
+                    size = imageinfo.get("size", "")
+
+                    extmetadata = imageinfo.get("extmetadata", {})
+                    description = extmetadata.get("ImageDescription", {}).get("value", "")
+                    artist = extmetadata.get("Artist", {}).get("value", "")
+                    license_name = extmetadata.get("LicenseShortName", {}).get("value", "")
+                    license_url = extmetadata.get("LicenseUrl", {}).get("value", "")
+                    credit = extmetadata.get("Credit", {}).get("value", "")
+
+                    html_parts = ['<div class="mw-parser-output">']
+                    html_parts.append(f'<h2 class="title">{escape(title)}</h2>')
+
+                    html_parts.append('<div class="fullImageLink">')
+                    if thumb_url:
+                        html_parts.append(
+                            f'<a href="{escape(img_url)}" target="_blank">'
+                            f'<img src="{get_proxy_url(thumb_url)}" '
+                            f'alt="{escape(title)}" style="max-width:100%;"/>'
+                            f"</a>"
+                        )
+                    html_parts.append("</div>")
+
+                    html_parts.append('<table class="fileinfo">')
+                    if description:
+                        html_parts.append(f"<tr><th>Description</th><td>{description}</td></tr>")
+                    if artist:
+                        html_parts.append(f"<tr><th>Author</th><td>{artist}</td></tr>")
+                    if credit:
+                        html_parts.append(f"<tr><th>Source</th><td>{credit}</td></tr>")
+                    if license_name:
+                        license_link = (
+                            f'<a href="{escape(license_url)}">{escape(license_name)}</a>'
+                            if license_url
+                            else escape(license_name)
+                        )
+                        html_parts.append(f"<tr><th>License</th><td>{license_link}</td></tr>")
+                    html_parts.append(f"<tr><th>Dimensions</th><td>{width} &times; {height} pixels</td></tr>")
+                    html_parts.append(f"<tr><th>File size</th><td>{size} bytes</td></tr>")
+                    html_parts.append(f"<tr><th>MIME type</th><td>{escape(mime)}</td></tr>")
+                    html_parts.append("</table>")
+
+                    html_parts.append("</div>")
+                    return "\n".join(html_parts)
+        except Exception as e:
+            logger.warning(f"Failed to fetch file info from {api_url}: {e}")
+            continue  # Try next URL
+
+    # EMERGENCY FALLBACK: if all APIs are blocked, use Special:FilePath
+    # (redirects straight to the file). Note: this path does NOT go through the
+    # local proxy (commons.wikimedia.org is not in the allowlist), so the
+    # browser loads the image directly from Commons. This only happens when even
+    # imageinfo is unreachable — acceptable degradation.
+    filename = filename.replace(" ", "_")  # namespace prefix already stripped
+    encoded_filename = quote(filename)
+    direct_image_url = f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}"
+    commons_page_url = f"https://commons.wikimedia.org/wiki/File:{encoded_filename}"
+
+    logger.info(f"Using emergency fallback for {title} — APIs are blocked")
+
+    return (
+        f'<div class="mw-parser-output">'
+        f'<h2 class="title">{escape(title)}</h2>'
+        f'<div class="fullImageLink">'
+        f'<img src="{escape(direct_image_url)}" '
+        f'alt="{escape(title)}" style="max-width:100%;"/>'
+        f"</div>"
+        f'<table class="fileinfo">'
+        f'<tr><th>View on</th><td><a href="{escape(commons_page_url)}">Wikimedia Commons</a></td></tr>'
+        f'<tr><th>Direct link</th><td><a href="{escape(direct_image_url)}">Full resolution image</a></td></tr>'
+        f"</table>"
+        f"</div>"
+    )
 
 
 @cache.memoize(timeout=1800)  # 30 minutes
@@ -485,7 +722,7 @@ def fetch_search_results(base_url, query):
     logger.debug(f"Fetching search results from {url}")
 
     try:
-        with urlopen(url) as response:
+        with urlopen_with_retry(url, max_retries=3) as response:
             data = json.loads(response.read().decode())
         return data["query"]["search"]
     except Exception as e:
@@ -500,7 +737,7 @@ def fetch_article_info(base_url, title):
 
     article_info_url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500"
 
-    with urlopen(article_info_url) as response:
+    with urlopen_with_retry(article_info_url, max_retries=3) as response:
         logger.debug(f"Tried to fetch info for {title} from {article_info_url}")
         data = json.loads(response.read().decode())
         return data
@@ -601,110 +838,121 @@ def wiki_article(
             404,
         )
 
-    # Get article info using cached function
-    try:
-        article_info = fetch_article_info(base_url, title)
-        page = article_info["query"]["pages"].popitem()[1]
+    # Get article info using cached function.
+    # File:/Image: pages (especially those hosted on Wikimedia Commons) often
+    # 404/429 on this metadata endpoint, so we skip it for them and build the
+    # page from the imageinfo API further down
+    # (see fetch_file_page_fallback, which builds the viewer via imageinfo).
+    category_members = []
+    interwiki = []
+    badges = []
+    categories = []
+    is_file_page = title.startswith(FILE_NAMESPACE_PREFIXES)
 
-        category_members = []
-        interwiki = []
-        badges = []
-        categories = []
+    if not is_file_page:
+        try:
+            article_info = fetch_article_info(base_url, title)
+            page = article_info["query"]["pages"].popitem()[1]
 
-        langlinks = page.get("langlinks", [])
+            langlinks = page.get("langlinks", [])
 
-        logger.debug(f"Original Interwiki links for {title}: {langlinks}")
+            logger.debug(f"Original Interwiki links for {title}: {langlinks}")
 
-        # Get interwiki links and translate them to internal links where possible
-        for link in langlinks:
-            try:
-                interwiki_lang = link["lang"]
-                interwiki_title = link["*"]
-
-                logger.debug(
-                    f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
-                )
-
-                interwiki_url = url_for(
-                    "wiki_article",
-                    project=project,
-                    lang=interwiki_lang,
-                    title=interwiki_title,
-                )
-                link["url"] = interwiki_url
-
-                link["langname"] = app.languages[interwiki_lang]["name"]
-
-                interwiki.append(link)
-
-            except KeyError as e:
-                logger.error(
-                    f"Error processing interwiki link for title {title} in language {lang}: {e}"
-                )
-
-        # Get badges (e.g. "Good Article", "Featured Article")
-        props = page.get("pageprops", {})
-
-        for prop in props:
-            if prop.startswith("wikibase-badge-"):
+            # Get interwiki links and translate them to internal links where possible
+            for link in langlinks:
                 try:
-                    badge_id = prop.replace("wikibase-badge-", "")
+                    interwiki_lang = link["lang"]
+                    interwiki_title = link["*"]
 
-                    # Fetch the badge data from Wikidata
-                    badge_data = fetch_badge_data(badge_id, lang)
-
-                    badge = badge_data["entities"][badge_id]["labels"][lang]["value"]
-                    badge_image = badge_data["entities"][badge_id]["claims"]["P18"][0][
-                        "mainsnak"
-                    ]["datavalue"]["value"]
-                    badges.append(
-                        {
-                            "title": badge,
-                            "url": f"https://www.wikidata.org/wiki/{badge_id}",
-                            "image": get_proxy_url(
-                                f"https://commons.wikimedia.org/wiki/Special:Redirect/file/{badge_image}"
-                            ),
-                        }
+                    logger.debug(
+                        f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
                     )
 
-                except Exception as e:
-                    logger.error(f"Error fetching badge {prop}: {e}")
+                    interwiki_url = url_for(
+                        "wiki_article",
+                        project=project,
+                        lang=interwiki_lang,
+                        title=interwiki_title,
+                    )
+                    link["url"] = interwiki_url
 
-        # If the article is a category, fetch the category members
-        if "categoryinfo" in page:
-            category_members = fetch_category_members(base_url, title, project, lang)
+                    link["langname"] = app.languages[interwiki_lang]["name"]
 
-        # Get categories the article is in
-        if "categories" in page:
-            categories = page["categories"]
+                    interwiki.append(link)
 
-            for category in categories:
-                category["url"] = url_for(
-                    "wiki_article",
-                    project=project,
-                    lang=lang,
-                    title=category["title"],
-                )
+                except KeyError as e:
+                    logger.error(
+                        f"Error processing interwiki link for title {title} in language {lang}: {e}"
+                    )
 
-    except Exception as e:
-        logger.error(f"Error fetching article info: {e}")
-        return (
-            render_template(
-                "article.html",
-                title="Error",
-                content=f"An error occurred while fetching information about the article {title}.",
-                lang=lang,
-                project=project,
-            ),
-            500,
-        )
+            # Get badges (e.g. "Good Article", "Featured Article")
+            props = page.get("pageprops", {})
+
+            for prop in props:
+                if prop.startswith("wikibase-badge-"):
+                    try:
+                        badge_id = prop.replace("wikibase-badge-", "")
+
+                        # Fetch the badge data from Wikidata
+                        badge_data = fetch_badge_data(badge_id, lang)
+
+                        badge = badge_data["entities"][badge_id]["labels"][lang]["value"]
+                        badge_image = badge_data["entities"][badge_id]["claims"]["P18"][0][
+                            "mainsnak"
+                        ]["datavalue"]["value"]
+                        badges.append(
+                            {
+                                "title": badge,
+                                "url": f"https://www.wikidata.org/wiki/{badge_id}",
+                                "image": get_proxy_url(
+                                    f"https://commons.wikimedia.org/wiki/Special:Redirect/file/{badge_image}"
+                                ),
+                            }
+                        )
+
+                    except Exception as e:
+                        logger.error(f"Error fetching badge {prop}: {e}")
+
+            # If the article is a category, fetch the category members
+            if "categoryinfo" in page:
+                category_members = fetch_category_members(base_url, title, project, lang)
+
+            # Get categories the article is in
+            if "categories" in page:
+                categories = page["categories"]
+
+                for category in categories:
+                    category["url"] = url_for(
+                        "wiki_article",
+                        project=project,
+                        lang=lang,
+                        title=category["title"],
+                    )
+
+        except Exception as e:
+            # Metadata (interwiki, badges, categories) is optional. If this
+            # call fails (e.g. HTTP 429 from rate limiting), we do NOT take the
+            # article down: we continue and render the content without it. The
+            # content comes from a different API (REST), with more generous limits.
+            logger.warning(
+                f"Could not fetch metadata for {title} ({e}); "
+                f"rendering the article without it."
+            )
 
     interwiki = langsort(interwiki)
 
     # Fetch article content using cached function
     try:
         variant = request.args.get("variant", None)
-        article_html = fetch_article_content(base_url, title, variant)
+        # File:/Image: pages are built with a viewer based on the imageinfo
+        # API, which DOES embed the actual image — both for local fair-use files
+        # (hosted on the wiki itself) and for Wikimedia Commons files.
+        # (action=parse only returned the description text, without the image,
+        # which is exactly what the user wants to see.)
+        if is_file_page:
+            article_html = fetch_file_page_fallback(base_url, title)
+        else:
+            article_html = fetch_article_content(base_url, title, variant)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return (
@@ -719,7 +967,13 @@ def wiki_article(
             )
         else:
             logger.error(f"Error fetching article {title} from {lang}.{project}: {e}")
-            logger.debug(f"Response: {e.read()}")
+            try:
+                error_body = e.read()
+                if isinstance(error_body, bytes):
+                    error_body = error_body.decode("utf-8", errors="replace")[:500]
+                logger.debug(f"Response: {error_body}")
+            except Exception:
+                pass
             return (
                 render_template(
                     "article.html",
