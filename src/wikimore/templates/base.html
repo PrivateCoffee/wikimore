@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <title>{{ title }}{% if title %} &dash; {% endif %}Wikimore</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
-    <script>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
+        <title>{{ title }}{% if title %} &dash; {% endif %}Wikimore</title>
+        <link rel="stylesheet"
+              href="{{ url_for('static', filename='css/style.css') }}">
+        <link rel="stylesheet"
+              href="{{ url_for('static', filename='css/dark-mode.css') }}">
+        <script>
         // Check for saved dark mode preference or use system preference
         document.addEventListener('DOMContentLoaded', function() {
             // Create and inject the dark mode toggle
@@ -84,32 +86,33 @@
                 }
             });
         });
-    </script>
-</head>
-<body>
-    <div id="header">
-        <h1><a href="/">Wikimore</a></h1>
-        <form id="search-form" action="{{ url_for('search') }}" method="post">
-            <select name="project" id="project">
-            {% for key, value in wikimedia_projects.items() %}
-                <option {% if key == project %}selected="selected"{% endif %} value="{{ key }}">{{ value }}</option>
-            {% endfor %}
-            </select>
-            <select name="lang" id="lang">
-            {% for key, value in languages.items() %}
-                <option {% if key == lang %}selected="selected"{% endif %} value="{{ key }}">{{ value["name"] }}</option>
-            {% endfor %}
-            </select>
-            <input type="text" name="query" id="query" placeholder="Search Wiki">
-            <button type="submit">Search</button>
-        </form>
-    </div>
-    <div id="content">
-        {% block content %}{% endblock %}
-    </div>
-    <div id="footer">
-        {% block license %}{% endblock %}
-        <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a>, a <a href="https://private.coffee">Private.coffee</a> project</p>
-    </div>
-</body>
+        </script>
+    </head>
+    <body>
+        <div id="header">
+            <h1><a href="/">Wikimore</a></h1>
+            <form id="search-form" action="{{ url_for("search") }}" method="post">
+                <select name="project" id="project">
+                    {% for key, value in wikimedia_projects.items() %}
+                        <option {% if key == project %}selected="selected"{% endif %}
+                                value="{{ key }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+                <select name="lang" id="lang">
+                    {% for key, value in languages.items() %}
+                        <option {% if key == lang %}selected="selected"{% endif %} value="{{ key }}">{{ value["name"] }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="query" id="query" placeholder="Search Wiki">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+        <div id="content">
+            {% block content %}{% endblock %}
+        </div>
+        <div id="footer">
+            {% block license %}{% endblock %}
+            <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a>, a <a href="https://private.coffee">Private.coffee</a> project</p>
+        </div>
+    </body>
 </html>

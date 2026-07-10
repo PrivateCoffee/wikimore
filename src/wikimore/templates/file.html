@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-
 {% block content %}
     <h1 class="title">{{ title }}</h1>
-
     {% if interwiki %}
         <div class="language-selector">
-            <input type="checkbox" id="language-selector-toggle" class="language-selector-toggle">
+            <input type="checkbox"
+                   id="language-selector-toggle"
+                   class="language-selector-toggle">
             <label for="language-selector-toggle" class="language-selector-label">
                 <span class="language-selector-label-text">Language</span>
                 <span class="language-selector-label-icon"></span>
@@ -21,7 +21,6 @@
             </div>
         </div>
     {% endif %}
-
     <div id="file-page">
         {% if file_info and file_info.proxied_url %}
             <div id="file-display">
@@ -42,7 +41,6 @@
                     <a href="{{ file_info.proxied_url }}" class="file-download">Download file</a>
                 {% endif %}
             </div>
-
             <table id="file-metadata">
                 <tbody>
                     {% if file_info.user %}
@@ -80,14 +78,10 @@
         {% elif not file_info or not file_info.proxied_url %}
             <p>This file could not be found or has no associated media.</p>
         {% endif %}
-
         {% if content %}
-            <div id="file-description">
-                {{ content|safe }}
-            </div>
+            <div id="file-description">{{ content|safe }}</div>
         {% endif %}
     </div>
-
     {% if categories %}
         <div id="wm-categories">
             {% for category in categories %}
@@ -96,9 +90,8 @@
         </div>
     {% endif %}
 {% endblock %}
-
 {% block license %}
-{% if license %}
-    <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
-{% endif %}
+    {% if license %}
+        <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
+    {% endif %}
 {% endblock %}

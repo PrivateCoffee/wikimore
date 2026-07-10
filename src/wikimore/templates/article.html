@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block content %}
     <h1 class="title{% if rtl %} title-rtl{% endif %}">
         {{ title }}
@@ -15,7 +14,9 @@
     </h1>
     {% if interwiki %}
         <div class="language-selector">
-            <input type="checkbox" id="language-selector-toggle" class="language-selector-toggle">
+            <input type="checkbox"
+                   id="language-selector-toggle"
+                   class="language-selector-toggle">
             <label for="language-selector-toggle" class="language-selector-label">
                 <span class="language-selector-label-text">Language</span>
                 <span class="language-selector-label-icon"></span>
@@ -48,9 +49,8 @@
         </div>
     {% endif %}
 {% endblock %}
-
 {% block license %}
-{% if license %}
-    <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
-{% endif %}
+    {% if license %}
+        <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
+    {% endif %}
 {% endblock %}

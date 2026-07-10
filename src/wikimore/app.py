@@ -1,24 +1,25 @@
-from flask import (
-    render_template as flask_render_template,
-    Flask,
-    request,
-    redirect,
-    url_for,
-    Response,
-)
-
-import urllib.request
-from urllib.parse import urlencode, urlparse, quote
-from html import escape
-import json
-import os
-import sys
-import logging
-import pathlib
 import importlib.metadata
-from typing import Dict, Union, Tuple, Text
+import json
+import logging
+import os
+import pathlib
+import sys
+import urllib.request
+from html import escape
+from typing import Dict, Text, Tuple, Union
+from urllib.parse import quote, urlencode, urlparse
 
 from bs4 import BeautifulSoup
+from flask import (
+    Flask,
+    Response,
+    redirect,
+    request,
+    url_for,
+)
+from flask import (
+    render_template as flask_render_template,
+)
 
 from .cache import cache
 
@@ -129,9 +130,9 @@ handler.setFormatter(formatter)
 
 
 @cache.cached(timeout=86400, key_prefix="wikimedia_projects")
-def get_wikimedia_projects() -> (
-    Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]
-):
+def get_wikimedia_projects() -> Tuple[
+    Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]
+]:
     """Fetch Wikimedia projects and languages from the Wikimedia API.
 
     Returns:
@@ -146,7 +147,7 @@ def get_wikimedia_projects() -> (
     with urlopen(url, timeout=30) as response:
         try:
             data = json.loads(response.read().decode())
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             logger.fatal("Error decoding JSON response")
             raise
         except urllib.error.HTTPError as e:
@@ -155,7 +156,7 @@ def get_wikimedia_projects() -> (
         except urllib.error.URLError as e:
             logger.fatal(f"URL error fetching Wikimedia projects and languages: {e}")
             raise
-        except Exception as e:
+        except Exception:
             logger.fatal("Error fetching Wikimedia projects and languages")
             raise
 
@@ -469,7 +470,7 @@ def fetch_article_content(base_url, title, variant=None):
         with urlopen(api_request_url, headers) as response:
             article_html = response.read().decode()
             return article_html
-    except urllib.error.HTTPError as e:
+    except urllib.error.HTTPError:
         # Re-raise the error to be handled by the calling function
         raise
 
@@ -750,7 +751,9 @@ def wiki_article(
         if file_desc_html:
             desc_soup = BeautifulSoup(file_desc_html, "html.parser")
 
-            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all("area", href=True):
+            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all(
+                "area", href=True
+            ):
                 href = a["href"]
                 if href.startswith("/wiki/"):
                     a["href"] = f"/{project}/{lang}{href}"
