@@ -26,3 +26,16 @@ wikimore = "wikimore.app:main"
 "Homepage" = "https://git.private.coffee/privatecoffee/wikimore"
 "Bug Tracker" = "https://git.private.coffee/privatecoffee/wikimore/issues"
 "Source Code" = "https://git.private.coffee/privatecoffee/wikimore"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-select = ["I", "PLC0415"]
+ignore = ["E501"]
+
+[tool.djlint]
+profile = "jinja2"
+extension = "html"
+ignore = "H006,H030,H031"
