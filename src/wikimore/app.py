@@ -375,7 +375,8 @@ def proxy() -> bytes:
 
     with urlopen(url) as response:
         data = response.read()
-    return data
+        content_type = response.headers.get("Content-Type", "application/octet-stream")
+    return data, 200, {"Content-Type": content_type}
 
 
 @app.route("/")
