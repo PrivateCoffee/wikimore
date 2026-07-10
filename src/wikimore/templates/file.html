@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1 class="title">{{ title }}</h1>
+
+    {% if interwiki %}
+        <div class="language-selector">
+            <input type="checkbox" id="language-selector-toggle" class="language-selector-toggle">
+            <label for="language-selector-toggle" class="language-selector-label">
+                <span class="language-selector-label-text">Language</span>
+                <span class="language-selector-label-icon"></span>
+            </label>
+            <div class="language-selector-menu">
+                <ul class="language-selector-list">
+                    {% for lang in interwiki %}
+                        <li class="language-selector-item">
+                            <a href="{{ lang.url }}" class="language-selector-link">{{ lang.langname }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    <div id="file-page">
+        {% if file_info and file_info.proxied_url %}
+            <div id="file-display">
+                {% set mediatype = file_info.get('mediatype', '') %}
+                {% if mediatype in ['BITMAP', 'DRAWING'] %}
+                    <a href="{{ file_info.proxied_url }}">
+                        <img src="{{ file_info.proxied_url }}" alt="{{ title }}" id="file-image">
+                    </a>
+                {% elif mediatype == 'VIDEO' %}
+                    <video controls id="file-video">
+                        <source src="{{ file_info.proxied_url }}" type="{{ file_info.mime }}">
+                    </video>
+                {% elif mediatype == 'AUDIO' %}
+                    <audio controls id="file-audio">
+                        <source src="{{ file_info.proxied_url }}" type="{{ file_info.mime }}">
+                    </audio>
+                {% else %}
+                    <a href="{{ file_info.proxied_url }}" class="file-download">Download file</a>
+                {% endif %}
+            </div>
+
+            <table id="file-metadata">
+                <tbody>
+                    {% if file_info.user %}
+                        <tr>
+                            <th>Uploaded by</th>
+                            <td>{{ file_info.user }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if file_info.timestamp %}
+                        <tr>
+                            <th>Upload date</th>
+                            <td>{{ file_info.timestamp }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if file_info.mime %}
+                        <tr>
+                            <th>MIME type</th>
+                            <td>{{ file_info.mime }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if file_info.width and file_info.height %}
+                        <tr>
+                            <th>Dimensions</th>
+                            <td>{{ file_info.width }} × {{ file_info.height }} px</td>
+                        </tr>
+                    {% endif %}
+                    {% if file_info.size_str %}
+                        <tr>
+                            <th>File size</th>
+                            <td>{{ file_info.size_str }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        {% elif not file_info or not file_info.proxied_url %}
+            <p>This file could not be found or has no associated media.</p>
+        {% endif %}
+
+        {% if content %}
+            <div id="file-description">
+                {{ content|safe }}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if categories %}
+        <div id="wm-categories">
+            {% for category in categories %}
+                <a href="{{ category.url }}" class="wm-category">{{ category.title }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block license %}
+{% if license %}
+    <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
+{% endif %}
+{% endblock %}

@@ -1361,3 +1361,52 @@ Currently blocked by implementation of comments retrieval in the backend
 .badge>img {
     max-height: 1em;
 }
+
+/* File page */
+#file-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+#file-display {
+    text-align: center;
+}
+
+#file-image {
+    max-width: 100%;
+    max-height: 70vh;
+    height: auto;
+    border: 1px solid #ddd;
+}
+
+#file-video,
+#file-audio {
+    max-width: 100%;
+}
+
+.file-download {
+    display: inline-block;
+    padding: 0.5em 1em;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+#file-metadata {
+    border-collapse: collapse;
+    font-size: 0.9em;
+    width: fit-content;
+}
+
+#file-metadata th,
+#file-metadata td {
+    padding: 0.4em 0.8em;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+#file-metadata th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    white-space: nowrap;
+}

@@ -567,6 +567,34 @@ def fetch_license_info(base_url, title):
     return license
 
 
+@cache.memoize(timeout=1800)
+def fetch_file_info(base_url, title):
+    """Fetches file metadata from the MediaWiki imageinfo API."""
+    url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=imageinfo&iiprop=url|size|mime|user|timestamp|mediatype"
+    try:
+        with urlopen(url) as response:
+            data = json.loads(response.read().decode())
+        pages = data["query"]["pages"]
+        page = next(iter(pages.values()))
+        return page.get("imageinfo", [{}])[0]
+    except Exception as e:
+        logger.error(f"Error fetching file info for {title}: {e}")
+        return {}
+
+
+@cache.memoize(timeout=1800)
+def fetch_file_page_content(base_url, title):
+    """Fetches rendered file description HTML from the MediaWiki parse API."""
+    url = f"{base_url}/w/api.php?action=parse&format=json&page={escape(quote(title.replace(' ', '_')), True)}&prop=text"
+    try:
+        with urlopen(url) as response:
+            data = json.loads(response.read().decode())
+        return data.get("parse", {}).get("text", {}).get("*", "")
+    except Exception as e:
+        logger.error(f"Error fetching file description for {title}: {e}")
+        return ""
+
+
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
     project: str, lang: str, title: str
@@ -700,6 +728,61 @@ def wiki_article(
         )
 
     interwiki = langsort(interwiki)
+
+    # Handle File namespace
+    # (ID 6 according to https://www.mediawiki.org/wiki/Help:Namespaces)
+    if page.get("ns") == 6:
+        file_info = fetch_file_info(base_url, title)
+
+        if file_info.get("url"):
+            file_info["proxied_url"] = get_proxy_url(file_info["url"])
+
+        size = file_info.get("size", 0)
+        if size < 1024:
+            file_info["size_str"] = f"{size} B"
+        elif size < 1024 * 1024:
+            file_info["size_str"] = f"{size / 1024:.1f} KB"
+        else:
+            file_info["size_str"] = f"{size / (1024 * 1024):.1f} MB"
+
+        file_desc_html = fetch_file_page_content(base_url, title)
+
+        if file_desc_html:
+            desc_soup = BeautifulSoup(file_desc_html, "html.parser")
+
+            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all("area", href=True):
+                href = a["href"]
+                if href.startswith("/wiki/"):
+                    a["href"] = f"/{project}/{lang}{href}"
+
+            for span in desc_soup.find_all("span", class_="mw-editsection"):
+                span.decompose()
+
+            for style in desc_soup.find_all("style"):
+                style.decompose()
+
+            for img in desc_soup.find_all("img"):
+                img["src"] = get_proxy_url(img["src"])
+                img["loading"] = "lazy"
+
+            for source in desc_soup.find_all("source"):
+                source["src"] = get_proxy_url(source["src"])
+
+            file_desc_html = str(desc_soup)
+
+        license = fetch_license_info(base_url, title)
+
+        return render_template(
+            "file.html",
+            title=title.replace("_", " "),
+            file_info=file_info,
+            content=file_desc_html,
+            lang=lang,
+            project=project,
+            license=license,
+            categories=categories,
+            interwiki=interwiki,
+        )
 
     # Fetch article content using cached function
     try:
