@@ -1,4 +1,9 @@
 {% extends "base.html" %}
+{% block head %}
+    {% if retry_after %}
+        <meta http-equiv="refresh" content="{{ retry_after }}">
+    {% endif %}
+{% endblock %}
 {% block content %}
     <h1 class="title{% if rtl %} title-rtl{% endif %}">
         {{ title }}

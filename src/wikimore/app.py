@@ -5,6 +5,8 @@ import os
 import pathlib
 import sys
 import urllib.request
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from html import escape
 from typing import Dict, Text, Tuple, Union
 from urllib.parse import quote, urlencode, urlparse
@@ -355,6 +357,43 @@ def get_proxy_url(url: str) -> str:
     return f"/proxy?{urlencode({'url': url})}"
 
 
+def get_retry_after(exc: urllib.error.HTTPError) -> int | None:
+    try:
+        value = exc.headers.get("Retry-After")
+        if not value:
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        delta = parsedate_to_datetime(value) - datetime.now(timezone.utc)
+        return max(0, int(delta.total_seconds()))
+    except Exception:
+        return None
+
+
+def render_rate_limited(
+    retry_after: int | None, lang: str = "en", project: str = "wiki"
+) -> tuple:
+    content = "<p>The upstream server is rate-limiting requests."
+    if retry_after:
+        content += f" This page will reload automatically in {retry_after} seconds."
+    else:
+        content += " Please try again later."
+    content += "</p>"
+    return (
+        render_template(
+            "article.html",
+            title="Too Many Requests",
+            content=content,
+            retry_after=retry_after,
+            lang=lang,
+            project=project,
+        ),
+        429,
+    )
+
+
 @app.route("/proxy")
 def proxy() -> bytes:
     """A simple proxy for Wikimedia Commons and Wikimedia Maps URLs.
@@ -579,6 +618,8 @@ def fetch_file_info(base_url, title):
         pages = data["query"]["pages"]
         page = next(iter(pages.values()))
         return page.get("imageinfo", [{}])[0]
+    except urllib.error.HTTPError:
+        raise
     except Exception as e:
         logger.error(f"Error fetching file info for {title}: {e}")
         return {}
@@ -592,6 +633,8 @@ def fetch_file_page_content(base_url, title):
         with urlopen(url) as response:
             data = json.loads(response.read().decode())
         return data.get("parse", {}).get("text", {}).get("*", "")
+    except urllib.error.HTTPError:
+        raise
     except Exception as e:
         logger.error(f"Error fetching file description for {title}: {e}")
         return ""
@@ -716,6 +759,20 @@ def wiki_article(
                     title=category["title"],
                 )
 
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+        logger.error(f"Error fetching article info: {e}")
+        return (
+            render_template(
+                "article.html",
+                title="Error",
+                content=f"An error occurred while fetching information about the article {title}.",
+                lang=lang,
+                project=project,
+            ),
+            500,
+        )
     except Exception as e:
         logger.error(f"Error fetching article info: {e}")
         return (
@@ -734,7 +791,14 @@ def wiki_article(
     # Handle File namespace
     # (ID 6 according to https://www.mediawiki.org/wiki/Help:Namespaces)
     if page.get("ns") == 6:
-        file_info = fetch_file_info(base_url, title)
+        try:
+            file_info = fetch_file_info(base_url, title)
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                return render_rate_limited(
+                    get_retry_after(e), lang=lang, project=project
+                )
+            raise
 
         if file_info.get("url"):
             file_info["proxied_url"] = get_proxy_url(file_info["url"])
@@ -747,7 +811,14 @@ def wiki_article(
         else:
             file_info["size_str"] = f"{size / (1024 * 1024):.1f} MB"
 
-        file_desc_html = fetch_file_page_content(base_url, title)
+        try:
+            file_desc_html = fetch_file_page_content(base_url, title)
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                return render_rate_limited(
+                    get_retry_after(e), lang=lang, project=project
+                )
+            raise
 
         if file_desc_html:
             desc_soup = BeautifulSoup(file_desc_html, "html.parser")
@@ -804,6 +875,8 @@ def wiki_article(
                 ),
                 404,
             )
+        elif e.code == 429:
+            return render_rate_limited(get_retry_after(e), lang=lang, project=project)
         else:
             logger.error(f"Error fetching article {title} from {lang}.{project}: {e}")
             logger.debug(f"Response: {e.read()}")
