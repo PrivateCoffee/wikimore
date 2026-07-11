@@ -539,7 +539,7 @@ def fetch_article_info(base_url, title):
     """Fetches article metadata from the Wikimedia API with caching."""
     logger.debug(f"Fetching article info for {title} from {base_url}")
 
-    article_info_url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500"
+    article_info_url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500&llprop=url"
 
     with urlopen(article_info_url) as response:
         logger.debug(f"Tried to fetch info for {title} from {article_info_url}")
@@ -698,15 +698,36 @@ def wiki_article(
                     f"Generating interwiki link for: {interwiki_lang}.{project}/{interwiki_title}"
                 )
 
-                interwiki_url = url_for(
-                    "wiki_article",
-                    project=project,
-                    lang=interwiki_lang,
-                    title=interwiki_title,
-                )
-                link["url"] = interwiki_url
-
-                link["langname"] = app.languages[interwiki_lang]["name"]
+                if interwiki_lang in app.languages:
+                    link["url"] = url_for(
+                        "wiki_article",
+                        project=project,
+                        lang=interwiki_lang,
+                        title=interwiki_title,
+                    )
+                    link["langname"] = app.languages[interwiki_lang]["name"]
+                else:
+                    # Language code not in sitematrix (e.g. nb → no.wikipedia.org).
+                    # Try to match the target URL against a known project instead.
+                    parts = urlparse(link["url"])
+                    target_domain = f"https://{parts.netloc}"
+                    matched = False
+                    for language, language_data in app.languages.items():
+                        if language_data["projects"].get(project) == target_domain:
+                            link["url"] = url_for(
+                                "wiki_article",
+                                project=project,
+                                lang=language,
+                                title=interwiki_title,
+                            )
+                            link["langname"] = language_data["name"]
+                            matched = True
+                            break
+                    if not matched:
+                        logger.debug(
+                            f"No language match found for {interwiki_lang} ({link['url']}), using raw URL"
+                        )
+                        link["langname"] = interwiki_lang
 
                 interwiki.append(link)
 
