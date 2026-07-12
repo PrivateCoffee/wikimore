@@ -112,6 +112,7 @@ def urlopen(url, headers={}, **kwargs):
         url,
         headers={"User-Agent": user_agent, **headers},
     )
+    kwargs.setdefault("timeout", 30)
     return urllib.request.urlopen(req, **kwargs)
 
 
