@@ -10,80 +10,26 @@
         <link rel="stylesheet"
               href="{{ url_for('static', filename='css/dark-mode.css') }}">
         <script>
-        // Check for saved dark mode preference or use system preference
         document.addEventListener('DOMContentLoaded', function() {
-            // Create and inject the dark mode toggle
-            const headerRight = document.createElement('div');
-            headerRight.className = 'header-right';
-            
-            const darkModeToggle = document.createElement('div');
-            darkModeToggle.className = 'dark-mode-toggle';
-            darkModeToggle.innerHTML = `
-                <span class="toggle-icon">☀️</span>
-                <label>
-                    <input type="checkbox" id="dark-mode-toggle">
-                    <span class="switch-track"></span>
-                </label>
-                <span class="toggle-icon">🌙</span>
-            `;
-            
-            headerRight.appendChild(darkModeToggle);
-            
-            // Find the header element and insert the toggle before the search form
-            const header = document.getElementById('header');
-            const searchForm = document.getElementById('search-form');
-            header.insertBefore(headerRight, searchForm);
-            
-            // Now get the toggle input element
-            const darkModeToggleInput = document.getElementById('dark-mode-toggle');
-            
-            // Function to set dark mode
+            const toggle = document.getElementById('dark-mode-toggle');
+
             function setDarkMode(isDark) {
-                if (isDark) {
-                    document.body.classList.add('dark-mode');
-                    darkModeToggleInput.checked = true;
-                } else {
-                    document.body.classList.remove('dark-mode');
-                    darkModeToggleInput.checked = false;
-                }
-                // Save preference to localStorage
+                document.body.classList.toggle('dark-mode', isDark);
+                toggle.checked = isDark;
                 localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
             }
-            
-            // Check for saved preference
-            const savedDarkMode = localStorage.getItem('darkMode');
-            
-            if (savedDarkMode === 'enabled') {
-                setDarkMode(true);
-            } else if (savedDarkMode === 'disabled') {
-                setDarkMode(false);
-            } else {
-                // If no saved preference, check system preference
-                const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                setDarkMode(prefersDarkMode);
-            }
-            
-            // Listen for toggle changes
-            darkModeToggleInput.addEventListener('change', function() {
-                setDarkMode(this.checked);
-            });
-            
-            // Listen for system preference changes
+
+            const saved = localStorage.getItem('darkMode');
+            if (saved === 'enabled') setDarkMode(true);
+            else if (saved === 'disabled') setDarkMode(false);
+            else setDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+            toggle.addEventListener('change', () => setDarkMode(toggle.checked));
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-                // Only apply if user hasn't set a preference
-                if (!localStorage.getItem('darkMode')) {
-                    setDarkMode(e.matches);
-                }
+                if (!localStorage.getItem('darkMode')) setDarkMode(e.matches);
             });
-            
-            // Add keyboard shortcut
-            document.addEventListener('keydown', function(event) {
-                // Shift + D to toggle dark mode
-                if (event.shiftKey && event.key === 'D') {
-                    darkModeToggleInput.checked = !darkModeToggleInput.checked;
-                    // Trigger the change event
-                    darkModeToggleInput.dispatchEvent(new Event('change'));
-                }
+            document.addEventListener('keydown', function(e) {
+                if (e.shiftKey && e.key === 'D') setDarkMode(!toggle.checked);
             });
         });
         </script>
@@ -91,29 +37,46 @@
     </head>
     <body>
         <div id="header">
-            <h1><a href="/">Wikimore</a></h1>
-            <form id="search-form" action="{{ url_for("search") }}" method="post">
-                <select name="project" id="project">
-                    {% for key, value in wikimedia_projects.items() %}
-                        <option {% if key == project %}selected="selected"{% endif %}
-                                value="{{ key }}">{{ value }}</option>
-                    {% endfor %}
-                </select>
-                <select name="lang" id="lang">
-                    {% for key, value in languages.items() %}
-                        <option {% if key == lang %}selected="selected"{% endif %} value="{{ key }}">{{ value["name"] }}</option>
-                    {% endfor %}
-                </select>
-                <input type="text" name="query" id="query" placeholder="Search Wiki">
-                <button type="submit">Search</button>
-            </form>
+            <div class="header-inner">
+                <a href="/" class="site-name">Wikimore</a>
+                <form id="search-form" action="{{ url_for("search") }}" method="post">
+                    <select name="project" id="project">
+                        {% for key, value in wikimedia_projects.items() %}
+                            <option {% if key == project %}selected="selected"{% endif %}
+                                    value="{{ key }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="lang" id="lang">
+                        {% for key, value in languages.items() %}
+                            <option {% if key == lang %}selected="selected"{% endif %}
+                                    value="{{ key }}">{{ value["name"] }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" name="query" id="query" placeholder="Search Wiki&hellip;">
+                    <button type="submit">Search</button>
+                </form>
+                <div class="header-right">
+                    <div class="dark-mode-toggle">
+                        <span class="toggle-icon">☀️</span>
+                        <label>
+                            <input type="checkbox" id="dark-mode-toggle">
+                            <span class="switch-track"></span>
+                        </label>
+                        <span class="toggle-icon">🌙</span>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id="content">
-            {% block content %}{% endblock %}
+            <div class="page-inner">
+                {% block content %}{% endblock %}
+            </div>
         </div>
         <div id="footer">
-            {% block license %}{% endblock %}
-            <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a>, a <a href="https://private.coffee">Private.coffee</a> project</p>
+            <div class="footer-inner">
+                {% block license %}{% endblock %}
+                <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a>, a <a href="https://private.coffee">Private.coffee</a> project</p>
+            </div>
         </div>
     </body>
 </html>

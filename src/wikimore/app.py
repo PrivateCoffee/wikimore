@@ -539,7 +539,12 @@ def wiki_article(
     for span in soup.find_all("span", class_="mw-editsection"):
         span.decompose()
 
-    toc = []
+    rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))
+    if request.args.get("variant") == "ku-arab":
+        rtl = True
+        body["dir"] = "rtl"
+
+    toc_entries = []
     for heading in soup.find_all(["h2", "h3", "h4"]):
         heading_id = heading.get("id")
         if not heading_id:
@@ -549,11 +554,12 @@ def wiki_article(
         if heading_id:
             heading_text = heading.get_text(strip=True)
             if heading_text:
-                toc.append({
+                toc_entries.append({
                     "level": int(heading.name[1]),
                     "id": heading_id,
                     "text": heading_text,
                 })
+
 
     for style in soup.find_all("style"):
         style.decompose()
@@ -582,12 +588,6 @@ def wiki_article(
         if parent.attrs.get("data-mw-group", None):
             span["class"] = span.get("class", []) + [parent.attrs["data-mw-group"]]
 
-    rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))
-
-    if request.args.get("variant") == "ku-arab":
-        rtl = True
-        body["dir"] = "rtl"
-
     processed_html = str(body)
     license = fetch_license_info(base_url, title)
 
@@ -603,7 +603,7 @@ def wiki_article(
         badges=badges,
         categories=categories,
         category_members=category_members,
-        toc=toc,
+        toc=toc_entries,
     )
 
 

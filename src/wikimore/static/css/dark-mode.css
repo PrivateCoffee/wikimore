@@ -23,21 +23,27 @@
 
 body.dark-mode {
     color-scheme: dark;
+    --accent-color: #64b5f6;
     --text-color: var(--dark-text-color);
+    --text-muted: #a0a0a0;
     --bg-color: var(--dark-bg-color);
+    --surface-color: var(--dark-header-bg);
+    --border-color: var(--dark-border-color);
+    --border-light: #2a2a2a;
     --input-bg: var(--dark-search-bg);
     background-color: var(--dark-bg-color);
     color: var(--dark-text-color);
 }
 
-/* Header styling */
+/* Header */
 .dark-mode #header {
     background-color: var(--dark-header-bg);
     border-bottom: 1px solid var(--dark-border-color);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-.dark-mode #header h1 a {
-    color: var(--dark-text-color);
+.dark-mode .site-name {
+    color: var(--accent-color);
 }
 
 /* Search form */
@@ -211,6 +217,24 @@ body.dark-mode {
 
 .dark-mode .language-selector-link:hover {
     background-color: var(--dark-highlight-bg);
+}
+
+/* Home feature cards and search results */
+.dark-mode .home-feature,
+.dark-mode .search-result {
+    background-color: var(--dark-infobox-bg);
+    border-color: var(--dark-border-color);
+}
+
+.dark-mode .search-result:hover {
+    border-color: var(--accent-color);
+}
+
+.dark-mode .search-result-snippet,
+.dark-mode .home-desc,
+.dark-mode .home-tagline,
+.dark-mode .home-feature p {
+    color: #bbb;
 }
 
 /* Table of contents */
