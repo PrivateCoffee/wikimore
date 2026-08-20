@@ -1,6 +1,7 @@
 import json
 import logging
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import escape
 from typing import Dict, List, Tuple, Union
 from urllib.parse import quote
@@ -81,14 +82,22 @@ def get_active_users(languages: dict) -> List[Tuple[str, int]]:
     path = "/w/api.php?action=query&format=json&meta=siteinfo&siprop=statistics"
     active_users = {}
 
-    for lang, data in languages.items():
+    def _fetch(lang, data):
         try:
             url = f"{data['projects']['wiki']}{path}"
             with urlopen(url) as response:
                 result = json.loads(response.read().decode())
-                active_users[lang] = result["query"]["statistics"]["activeusers"]
+            return lang, result["query"]["statistics"]["activeusers"]
         except Exception as e:
             logger.error(f"Error fetching active users for {lang}: {e}")
+            return lang, None
+
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        futures = {pool.submit(_fetch, lang, data): lang for lang, data in languages.items()}
+        for future in as_completed(futures):
+            lang, count = future.result()
+            if count is not None:
+                active_users[lang] = count
 
     return sorted(active_users.items(), key=lambda x: x[1], reverse=True)
 
