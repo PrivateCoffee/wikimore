@@ -170,10 +170,17 @@ def proxy() -> bytes:
 
     logger.debug(f"Proxying {url}")
 
-    with urlopen(url) as response:
-        data = response.read()
-        content_type = response.headers.get("Content-Type", "application/octet-stream")
-    return data, 200, {"Content-Type": content_type}
+    response = urlopen(url)
+    content_type = response.headers.get("Content-Type", "application/octet-stream")
+
+    def stream():
+        try:
+            while chunk := response.read(65536):
+                yield chunk
+        finally:
+            response.close()
+
+    return Response(stream(), content_type=content_type)
 
 
 @app.route("/")
