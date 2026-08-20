@@ -4,7 +4,7 @@ ENV APP_ENV=/opt/venv
 ENV PATH="${APP_ENV}/bin:$PATH"
 ENV PORT=8109
 
-RUN apk add --no-cache py3-pip && \
+RUN apk add --no-cache py3-pip py3-packaging && \
   python3 -m venv $APP_ENV
 
 COPY . /app
