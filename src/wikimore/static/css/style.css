@@ -220,6 +220,84 @@ h1 {
     margin-bottom: 5px;
 }
 
+/* Generated table of contents */
+#wm-toc {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 0.5em 1em;
+    margin: 0 1em 1em 0;
+    float: left;
+    min-width: 180px;
+    max-width: 35%;
+    box-sizing: border-box;
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+#wm-toc.wm-toc-rtl {
+    float: right;
+    margin: 0 0 1em 1em;
+}
+
+.wm-toc-heading {
+    font-weight: bold;
+    text-align: center;
+    display: block;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 0.4em;
+}
+
+.wm-toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: toc-h2;
+}
+
+.wm-toc-h2 {
+    counter-increment: toc-h2;
+    counter-reset: toc-h3;
+}
+
+.wm-toc-h2 > a::before {
+    content: counter(toc-h2) ". ";
+}
+
+.wm-toc-h3 {
+    counter-increment: toc-h3;
+    padding-left: 1.5em;
+}
+
+.wm-toc-h3 > a::before {
+    content: counter(toc-h2) "." counter(toc-h3) " ";
+}
+
+.wm-toc-h4 {
+    padding-left: 3em;
+}
+
+.wm-toc-list li {
+    margin: 0.15em 0;
+}
+
+.wm-toc-list a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+.wm-toc-list a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    #wm-toc {
+        float: none;
+        max-width: 100%;
+        margin: 0.5em 0 1em 0;
+    }
+}
+
 #footer {
     background-color: #ffffff;
     border-top: 1px solid #a2a9b1;

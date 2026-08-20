@@ -213,6 +213,20 @@ body.dark-mode {
     background-color: var(--dark-highlight-bg);
 }
 
+/* Table of contents */
+.dark-mode #wm-toc {
+    background-color: var(--dark-sidebar-bg);
+    border: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .wm-toc-heading {
+    border-bottom: 1px solid var(--dark-border-color);
+}
+
+.dark-mode .wm-toc-list a {
+    color: var(--dark-link-color);
+}
+
 /* Dark mode toggle styling */
 .dark-mode-toggle {
     display: flex;

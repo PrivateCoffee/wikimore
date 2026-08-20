@@ -539,6 +539,22 @@ def wiki_article(
     for span in soup.find_all("span", class_="mw-editsection"):
         span.decompose()
 
+    toc = []
+    for heading in soup.find_all(["h2", "h3", "h4"]):
+        heading_id = heading.get("id")
+        if not heading_id:
+            headline = heading.find("span", class_="mw-headline")
+            if headline:
+                heading_id = headline.get("id")
+        if heading_id:
+            heading_text = heading.get_text(strip=True)
+            if heading_text:
+                toc.append({
+                    "level": int(heading.name[1]),
+                    "id": heading_id,
+                    "text": heading_text,
+                })
+
     for style in soup.find_all("style"):
         style.decompose()
 
@@ -587,6 +603,7 @@ def wiki_article(
         badges=badges,
         categories=categories,
         category_members=category_members,
+        toc=toc,
     )
 
 
