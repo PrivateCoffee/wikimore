@@ -33,6 +33,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             git.private.coffee/privatecoffee/wikimore:latest
             git.private.coffee/privatecoffee/wikimore:${{ env.GITHUB_REF_NAME }}
