@@ -1,16 +1,12 @@
 FROM alpine:3.22
 
-ENV APP_ENV=/opt/venv
-ENV PATH="${APP_ENV}/bin:$PATH"
 ENV PORT=8109
 
-RUN apk add --no-cache py3-pip py3-packaging && \
-  python3 -m venv $APP_ENV
+RUN apk add --no-cache py3-pip
 
 COPY . /app
 
-RUN $APP_ENV/bin/pip install --no-cache-dir pip && \
-  $APP_ENV/bin/pip install /app[redis,gunicorn] && \
+RUN pip install --no-cache-dir --break-system-packages /app[redis,gunicorn] && \
   adduser -S -D -H wikimore
 
 COPY entrypoint.sh /entrypoint.sh
