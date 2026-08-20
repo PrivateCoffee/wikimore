@@ -165,22 +165,24 @@ def fetch_category_members(base_url: str, title: str) -> list:
     Returns raw member dicts (``pageid``, ``ns``, ``title``); URL generation
     is left to the caller so this function stays cache-safe and Flask-free.
     """
-    url = (
+    base_api_url = (
         f"{base_url}/w/api.php?action=query&format=json&list=categorymembers"
         f"&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
     )
     all_members = []
+    next_url = base_api_url
 
-    with urlopen(url) as response:
-        logger.debug(f"Tried to fetch category members for {title} from {url}")
-        data = json.loads(response.read().decode())
+    while next_url:
+        with urlopen(next_url) as response:
+            logger.debug(f"Fetching category members for {title} from {next_url}")
+            data = json.loads(response.read().decode())
+
         all_members += data["query"]["categorymembers"]
 
         if "continue" in data:
-            paged_url = url + f"&cmcontinue={data['continue']['cmcontinue']}"
-            with urlopen(paged_url) as paged_response:
-                paged_data = json.loads(paged_response.read().decode())
-                all_members += paged_data["query"]["categorymembers"]
+            next_url = base_api_url + f"&cmcontinue={data['continue']['cmcontinue']}"
+        else:
+            next_url = None
 
     return all_members
 
