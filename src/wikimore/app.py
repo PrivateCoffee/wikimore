@@ -1,13 +1,9 @@
-import importlib.metadata
 import json
 import logging
 import os
 import pathlib
 import sys
-import urllib.request
-from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
-from html import escape
+import urllib.error
 from typing import Dict, Text, Tuple, Union
 from urllib.parse import quote, urlencode, urlparse
 
@@ -24,307 +20,92 @@ from flask import (
 )
 
 from .cache import cache
-
-
-def env_flag(name: str, fallback: str | None = None) -> bool:
-    """Parse a boolean-like environment variable."""
-    value = os.environ.get(name)
-    if value is None and fallback:
-        value = os.environ.get(fallback)
-    if value is None:
-        return False
-
-    return value.strip().lower() not in {"", "0", "false", "no", "off"}
-
-
-DEBUG_ENABLED = env_flag("WIKIMORE_DEBUG", "DEBUG")
-LOG_LEVEL = logging.DEBUG if DEBUG_ENABLED else logging.INFO
+from .config import DEBUG_ENABLED, get_retry_after, get_version, urlopen
+from .fetchers import (
+    fetch_article_content,
+    fetch_article_info,
+    fetch_badge_data,
+    fetch_category_members,
+    fetch_file_info,
+    fetch_file_page_content,
+    fetch_license_info,
+    fetch_search_results,
+    get_active_users,
+    get_wikimedia_projects,
+)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-logger.propagate = False
-logger.handlers.clear()
-
-handler = logging.StreamHandler()
-handler.setLevel(LOG_LEVEL)
-logger.addHandler(handler)
-
-
-def get_version() -> str:
-    """Get the current version of the application."""
-    try:
-        version = importlib.metadata.version("wikimore")
-    except importlib.metadata.PackageNotFoundError:
-        version = "dev"
-    return version
-
-
-def get_instance_hostname() -> str:
-    """Get the hostname of the current instance.
-
-    Checks the `WIKIMORE_INSTANCE_HOSTNAME` environment variable first,
-    then the `X-Forwarded-Host` header, and finally falls back to `request.host`.
-
-    Args:
-        request: The Flask request object.
-
-    Returns:
-        str: The hostname of the current instance.
-    """
-    if env_host := os.environ.get("WIKIMORE_INSTANCE_HOSTNAME"):
-        return env_host
-    try:
-        if "X-Forwarded-Host" in request.headers:
-            return request.headers["X-Forwarded-Host"]
-        return request.host
-    except RuntimeError:
-        return "unknown"
-
-
-def get_admin_email() -> str:
-    """Parse the admin email from the environment variable.
-
-    Returns:
-        str: The admin email address.
-    """
-    return os.environ.get("WIKIMORE_ADMIN_EMAIL")
-
-
-def urlopen(url, headers={}, **kwargs):
-    """A wrapper around `urllib.request.urlopen` that adds a User-Agent header.
-
-    The User-Agent includes the application name, version, hostname, and admin email if available.
-
-    Args:
-        url (str): The URL to open.
-        headers (dict): Additional headers to include in the request.
-        **kwargs: Additional keyword arguments to pass to `urllib.request.urlopen`.
-
-    Returns:
-        HTTPResponse: The response from the URL.
-
-    Raises:
-        urllib.error.URLError: If there is an error opening the URL.
-    """
-    user_agent = f"Wikimore/{get_version()} (instance: {get_instance_hostname()}; admin: {get_admin_email() or 'not set'}; source: https://git.private.coffee/privatecoffee/wikimore)"
-
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": user_agent, **headers},
-    )
-    kwargs.setdefault("timeout", 30)
-    return urllib.request.urlopen(req, **kwargs)
 
 
 def create_app():
     """Create and configure the Flask app."""
-    # TODO: Make this a little more configurable
     app = Flask(__name__)
     app.static_folder = pathlib.Path(__file__).parent / "static"
-    app.logger.removeHandler(app.logger.handlers[0])
+    if app.logger.handlers:
+        app.logger.removeHandler(app.logger.handlers[0])
     cache.init_app(app)
     return app
 
 
 app = create_app()
 
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-
-
-@cache.cached(timeout=86400, key_prefix="wikimedia_projects")
-def get_wikimedia_projects() -> Tuple[
-    Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]
-]:
-    """Fetch Wikimedia projects and languages from the Wikimedia API.
-
-    Returns:
-        Tuple[Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]]:
-            A tuple containing two dictionaries:
-            - The first dictionary maps Wikimedia project codes to project names.
-            - The second dictionary maps language codes to dictionaries containing:
-                - A dictionary mapping Wikimedia project codes to project URLs.
-                - The language name.
-    """
-    url = "https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json"
-    with urlopen(url, timeout=30) as response:
-        try:
-            data = json.loads(response.read().decode())
-        except json.JSONDecodeError:
-            logger.fatal("Error decoding JSON response")
-            raise
-        except urllib.error.HTTPError as e:
-            logger.fatal(f"HTTP error fetching Wikimedia projects and languages: {e}")
-            raise
-        except urllib.error.URLError as e:
-            logger.fatal(f"URL error fetching Wikimedia projects and languages: {e}")
-            raise
-        except Exception:
-            logger.fatal("Error fetching Wikimedia projects and languages")
-            raise
-
-    projects = {}
-    languages = {}
-
-    for key, value in data["sitematrix"].items():
-        if key.isdigit():
-            language = value["name"]
-            language_code = value["code"]
-            language_projects = {}
-
-            for site in value["site"]:
-                language_projects[site["code"]] = site["url"]
-
-                if language_code == "en":
-                    projects[site["code"]] = site["sitename"]
-
-            if language_projects:
-                languages[language_code] = {
-                    "projects": language_projects,
-                    "name": language,
-                }
-
-    languages["special"] = {
-        "projects": {},
-        "name": "Special",
-    }
-
-    for special in data["sitematrix"]["specials"]:
-        sitename = special["sitename"]
-        code = special["code"]
-        language_code = special["lang"]
-
-        if sitename == "Wikipedia":
-            logger.warning(
-                f"Wikipedia special project {code} in {language_code} has site name {sitename}"
-            )
-            sitename = code
-
-        if language_code not in languages:
-            language_code = "special"
-
-        if code not in projects:
-            projects[code] = sitename
-
-        languages[language_code]["projects"][code] = special["url"]
-
-    return projects, languages
-
 
 app.wikimedia_projects, app.languages = get_wikimedia_projects()
-app.licenses = {}
 
 logger.debug(
     f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
 )
 
 
-# Get number of active Wikipedia users for each language
-def get_active_users() -> Dict[str, int]:
-    """Fetch the number of active Wikipedia users for each language.
-
-    Returns:
-        Dict[str, int]: A dictionary mapping language codes to the number of active Wikipedia users.
-    """
-    path = "/w/api.php?action=query&format=json&meta=siteinfo&siprop=statistics"
-
-    active_users = {}
-
-    for lang, data in app.languages.items():
-        try:
-            url = f"{data['projects']['wiki']}{path}"
-            with urlopen(url) as response:
-                data = json.loads(response.read().decode())
-                active_users[lang] = data["query"]["statistics"]["activeusers"]
-        except Exception as e:
-            logger.error(f"Error fetching active users for {lang}: {e}")
-
-    return sorted(active_users.items(), key=lambda x: x[1], reverse=True)
-
-
 if os.environ.get("WIKIMORE_NO_LANGSORT", os.environ.get("NO_LANGSORT", False)):
     LANGSORT = []
 elif (
     langsort_env := os.environ.get("WIKIMORE_LANGSORT", os.environ.get("LANGSORT"))
-    == "auto"
-):
-    LANGSORT = [lang for lang, _ in get_active_users()[:50]]
+) == "auto":
+    LANGSORT = [lang for lang, _ in get_active_users(app.languages)[:50]]
 elif langsort_env:
     LANGSORT = langsort_env.split(",")
 else:
-    # Opinionated sorting of languages
-    LANGSORT = [
-        "en",
-        "es",
-        "ja",
-        "de",
-        "fr",
-        "zh",
-        "ru",
-        "it",
-        "pt",
-        "pl",
-        "nl",
-        "ar",
-    ]
+    LANGSORT = ["en", "es", "ja", "de", "fr", "zh", "ru", "it", "pt", "pl", "nl", "ar"]
 
 
 def langsort(input: list[dict], key: str = "lang") -> list[dict]:
-    """Sorting of language data.
-
-    Sorts a list of dictionaries containing "lang" keys such that the most common languages are first.
-
-    Allows specifying a custom order using the `LANGSORT` environment variable.
+    """Sort a list of dicts so that languages in LANGSORT come first.
 
     Args:
-        input (list[dict]): A list of dictionaries containing "lang" keys.
+        input: List of dicts each containing a language code under `key`.
+        key: The dict key holding the language code (default: ``"lang"``).
 
     Returns:
-        list[dict]: The sorted list of dictionaries.
+        The re-ordered list, with LANGSORT languages first in that order,
+        followed by all remaining languages in their original order.
     """
-
     if not LANGSORT:
         return input
 
     output = []
-
     for lang in LANGSORT:
         for item in input:
             if item[key] == lang:
                 output.append(item)
-
     for item in input:
         if item[key] not in LANGSORT:
             output.append(item)
-
     return output
 
 
 logger.debug("Initialized language sort order")
 
-app_languages = [
-    {"lang": lang, "name": data["name"]} for lang, data in app.languages.items()
-]
+app_languages = [{"lang": lang, "name": data["name"]} for lang, data in app.languages.items()]
 app_languages = langsort(app_languages)
-
-app.languages = {
-    lang: app.languages[lang] for lang in [lang["lang"] for lang in app_languages]
-}
+app.languages = {lang: app.languages[lang] for lang in [l["lang"] for l in app_languages]}
 
 
 def render_template(*args, **kwargs) -> Text:
-    """A wrapper around Flask's `render_template` that adds the `languages` and `wikimedia_projects` context variables.
-
-    Args:
-        *args: Positional arguments to pass to `flask.render_template`.
-        **kwargs: Keyword arguments to pass to `flask.render_template`.
-
-    Returns:
-        Text: The rendered template.
-    """
+    """Wrapper around Flask's ``render_template`` that injects ``languages`` and
+    ``wikimedia_projects`` into every template context."""
     kwargs.setdefault("lang", "en")
     kwargs.setdefault("project", "wiki")
-
     return flask_render_template(
         *args,
         **kwargs,
@@ -334,17 +115,8 @@ def render_template(*args, **kwargs) -> Text:
 
 
 def get_proxy_url(url: str) -> str:
-    """Generate a proxy URL for a given URL.
-
-    Will only generate a proxy URL for URLs that are on Wikimedia Commons or Wikimedia Maps.
-    For other URLs, the original URL is returned.
-
-    Args:
-        url (str): The URL to generate a proxy URL for.
-
-    Returns:
-        str: The proxy URL, or the original URL if it should not be proxied.
-    """
+    """Return a ``/proxy?url=...`` URL for Wikimedia Commons/Maps URLs; pass
+    all other URLs through unchanged."""
     if url.startswith("//"):
         url = "https:" + url
 
@@ -356,21 +128,6 @@ def get_proxy_url(url: str) -> str:
 
     logger.debug(f"Generating proxy URL for {url}")
     return f"/proxy?{urlencode({'url': url})}"
-
-
-def get_retry_after(exc: urllib.error.HTTPError) -> int | None:
-    try:
-        value = exc.headers.get("Retry-After")
-        if not value:
-            return None
-        try:
-            return int(value)
-        except ValueError:
-            pass
-        delta = parsedate_to_datetime(value) - datetime.now(timezone.utc)
-        return max(0, int(delta.total_seconds()))
-    except Exception:
-        return None
 
 
 def render_rate_limited(
@@ -397,11 +154,7 @@ def render_rate_limited(
 
 @app.route("/proxy")
 def proxy() -> bytes:
-    """A simple proxy for Wikimedia Commons and Wikimedia Maps URLs.
-
-    Returns:
-        bytes: The content of the proxied URL.
-    """
+    """Proxy Wikimedia Commons and Wikimedia Maps assets through this server."""
     url = request.args.get("url")
 
     if not url or not (
@@ -421,23 +174,13 @@ def proxy() -> bytes:
 
 @app.route("/")
 def home(project=None, lang=None) -> Text:
-    """Renders the home page.
-
-    Returns:
-        Text: The rendered home page.
-    """
+    """Render the home page."""
     return render_template("home.html", project=project, lang=lang)
 
 
 @app.route("/search", methods=["GET", "POST"])
 def search() -> Union[Text, Response]:
-    """Renders the search page.
-
-    If a search query is submitted, redirects to the search results page.
-
-    Returns:
-        str|Response: The rendered search page, or a redirect to the search results page.
-    """
+    """Handle search form submission; redirect to search results or the project main page."""
     if request.method == "POST":
         query = request.form["query"]
         lang = request.form["lang"]
@@ -461,17 +204,8 @@ def search() -> Union[Text, Response]:
 
 @app.route("/<domain>/<path:url>")
 def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text, int]]:
-    """Redirects to the appropriate project/language combination given the domain name of a Wikimedia project
-
-    Args:
-        domain (str): The domain of the Wikimedia project.
-        url (str): The URL path.
-
-    Returns:
-        Response: A redirect to the corresponding route
-    """
-    # TODO: Make this the default route scheme instead of a redirect
-
+    """Redirect bare Wikimedia domain URLs (e.g. ``en.wikipedia.org/wiki/…``) to
+    the equivalent internal Wikimore route."""
     for language, language_projects in app.languages.items():
         for project_name, project_url in language_projects["projects"].items():
             if project_url == f"https://{domain}":
@@ -479,9 +213,7 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
 
     for project_name, project_url in app.languages["special"]["projects"].items():
         if project_url == f"https://{domain}":
-            return redirect(f"{url_for('home')}/{project_name}/{language}/{url}")
-
-    # TODO / IDEA: Handle non-Wikimedia Mediawiki projects here?
+            return redirect(f"{url_for('home')}{project_name}/special/{url}")
 
     return (
         render_template(
@@ -493,177 +225,20 @@ def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text,
     )
 
 
-@cache.memoize(timeout=3600)  # 1 hour
-def fetch_article_content(base_url, title, variant=None):
-    """Fetches article content from the Wikimedia API with caching."""
-    logger.debug(f"Fetching article content for {title} from {base_url}")
-
-    api_request_url = f"{base_url}/api/rest_v1/page/html/{escape(quote(title.replace(' ', '_')), True).replace('/', '%2F')}"
-
-    logger.debug(f"Article content URL: {api_request_url}")
-
-    headers = {}
-
-    if variant:
-        headers["Accept-Language"] = variant
-
-    try:
-        with urlopen(api_request_url, headers) as response:
-            article_html = response.read().decode()
-            return article_html
-    except urllib.error.HTTPError:
-        # Re-raise the error to be handled by the calling function
-        raise
-
-
-@cache.memoize(timeout=1800)  # 30 minutes
-def fetch_search_results(base_url, query):
-    """Fetches search results from the Wikimedia API with caching."""
-    srquery = escape(quote(query.replace(" ", "_")), True)
-    url = (
-        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
-    )
-
-    logger.debug(f"Fetching search results from {url}")
-
-    try:
-        with urlopen(url) as response:
-            data = json.loads(response.read().decode())
-        return data["query"]["search"]
-    except Exception as e:
-        logger.error(f"Error fetching search results: {e}")
-        raise
-
-
-@cache.memoize(timeout=3600)  # 1 hour
-def fetch_article_info(base_url, title):
-    """Fetches article metadata from the Wikimedia API with caching."""
-    logger.debug(f"Fetching article info for {title} from {base_url}")
-
-    article_info_url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=info|pageprops|categoryinfo|langlinks|categories&lllimit=500&cllimit=500&llprop=url"
-
-    with urlopen(article_info_url) as response:
-        logger.debug(f"Tried to fetch info for {title} from {article_info_url}")
-        data = json.loads(response.read().decode())
-        return data
-
-
-@cache.memoize(timeout=86400)  # 24 hours
-def fetch_badge_data(badge_id, lang):
-    """Fetches badge data from Wikidata with caching."""
-    badge_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&ids={badge_id}&languages={lang}"
-
-    with urlopen(badge_url) as badge_response:
-        logger.debug(f"Tried to fetch badge {badge_id} from {badge_url}")
-        return json.loads(badge_response.read().decode())
-
-
-@cache.memoize(timeout=3600)  # 1 hour
-def fetch_category_members(base_url, title, project, lang):
-    """Fetches category members with caching."""
-    category_api_url = f"{base_url}/w/api.php?action=query&format=json&list=categorymembers&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
-
-    all_members = []
-
-    with urlopen(category_api_url) as category_api_response:
-        logger.debug(
-            f"Tried to fetch category members for {title} from {category_api_url}"
-        )
-        data = json.loads(category_api_response.read().decode())
-        category_members = data["query"]["categorymembers"]
-        all_members += category_members
-
-        if "continue" in data:
-            continue_params = f"&cmcontinue={data['continue']['cmcontinue']}"
-            category_api_url = category_api_url + continue_params
-
-            with urlopen(category_api_url) as category_api_response:
-                data = json.loads(category_api_response.read().decode())
-                all_members += data["query"]["categorymembers"]
-
-    for member in all_members:
-        member["url"] = url_for(
-            "wiki_article",
-            project=project,
-            lang=lang,
-            title=member["title"],
-        )
-
-    return all_members
-
-
-@cache.memoize(timeout=86400)  # 24 hours
-def fetch_license_info(base_url, title):
-    """Fetches license information with caching."""
-    if base_url not in app.licenses:
-        try:
-            mediawiki_api_url = f"{base_url}/w/rest.php/v1/page/{escape(quote(title.replace(' ', '_')), True)}"
-            mediawiki_api_response = urlopen(mediawiki_api_url)
-            mediawiki_api_data = json.loads(mediawiki_api_response.read().decode())
-            app.licenses[base_url] = license = mediawiki_api_data["license"]
-        except Exception:
-            license = None
-    else:
-        license = app.licenses[base_url]
-
-    return license
-
-
-@cache.memoize(timeout=1800)
-def fetch_file_info(base_url, title):
-    """Fetches file metadata from the MediaWiki imageinfo API."""
-    url = f"{base_url}/w/api.php?action=query&format=json&titles={escape(quote(title.replace(' ', '_')), True)}&prop=imageinfo&iiprop=url|size|mime|user|timestamp|mediatype"
-    try:
-        with urlopen(url) as response:
-            data = json.loads(response.read().decode())
-        pages = data["query"]["pages"]
-        page = next(iter(pages.values()))
-        return page.get("imageinfo", [{}])[0]
-    except urllib.error.HTTPError:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching file info for {title}: {e}")
-        return {}
-
-
-@cache.memoize(timeout=1800)
-def fetch_file_page_content(base_url, title):
-    """Fetches rendered file description HTML from the MediaWiki parse API."""
-    url = f"{base_url}/w/api.php?action=parse&format=json&page={escape(quote(title.replace(' ', '_')), True)}&prop=text"
-    try:
-        with urlopen(url) as response:
-            data = json.loads(response.read().decode())
-        return data.get("parse", {}).get("text", {}).get("*", "")
-    except urllib.error.HTTPError:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching file description for {title}: {e}")
-        return ""
+def _resolve_base_url(project: str, lang: str) -> str | None:
+    base_url = app.languages.get(lang, {}).get("projects", {}).get(project)
+    if not base_url:
+        base_url = app.languages.get("special", {}).get("projects", {}).get(project)
+    return base_url
 
 
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
     project: str, lang: str, title: str
 ) -> Union[Text, Response, Tuple[Text, int]]:
-    """Fetches and renders a Wikimedia article.
-
-    Handles redirects and links to other Wikimedia projects, and proxies images and videos.
-
-    Args:
-        project (str): The Wikimedia project code.
-        lang (str): The language code.
-        title (str): The article title.
-
-    Returns:
-        str|Response|Tuple[str, int]: The rendered article, a redirect to another article, or an error message with a status code.
-    """
-    # Check if the project and language are valid
-    language_projects = app.languages.get(lang, {}).get("projects", {})
-    base_url = language_projects.get(project)
-
-    if not base_url:
-        special_projects = app.languages.get("special", {}).get("projects", {})
-        base_url = special_projects.get(project)
+    """Fetch and render a Wikimedia article, handling redirects, interwiki links,
+    file pages, category pages, and media proxying."""
+    base_url = _resolve_base_url(project, lang)
 
     if not base_url:
         return (
@@ -675,7 +250,6 @@ def wiki_article(
             404,
         )
 
-    # Get article info using cached function
     try:
         article_info = fetch_article_info(base_url, title)
         page = article_info["query"]["pages"].popitem()[1]
@@ -686,10 +260,8 @@ def wiki_article(
         categories = []
 
         langlinks = page.get("langlinks", [])
-
         logger.debug(f"Original Interwiki links for {title}: {langlinks}")
 
-        # Get interwiki links and translate them to internal links where possible
         for link in langlinks:
             try:
                 interwiki_lang = link["lang"]
@@ -708,8 +280,6 @@ def wiki_article(
                     )
                     link["langname"] = app.languages[interwiki_lang]["name"]
                 else:
-                    # Language code not in sitematrix (e.g. nb → no.wikipedia.org).
-                    # Try to match the target URL against a known project instead.
                     parts = urlparse(link["url"])
                     target_domain = f"https://{parts.netloc}"
                     matched = False
@@ -737,17 +307,12 @@ def wiki_article(
                     f"Error processing interwiki link for title {title} in language {lang}: {e}"
                 )
 
-        # Get badges (e.g. "Good Article", "Featured Article")
         props = page.get("pageprops", {})
-
         for prop in props:
             if prop.startswith("wikibase-badge-"):
                 try:
                     badge_id = prop.replace("wikibase-badge-", "")
-
-                    # Fetch the badge data from Wikidata
                     badge_data = fetch_badge_data(badge_id, lang)
-
                     badge = badge_data["entities"][badge_id]["labels"][lang]["value"]
                     badge_image = badge_data["entities"][badge_id]["claims"]["P18"][0][
                         "mainsnak"
@@ -761,18 +326,18 @@ def wiki_article(
                             ),
                         }
                     )
-
                 except Exception as e:
                     logger.error(f"Error fetching badge {prop}: {e}")
 
-        # If the article is a category, fetch the category members
         if "categoryinfo" in page:
-            category_members = fetch_category_members(base_url, title, project, lang)
+            category_members = fetch_category_members(base_url, title)
+            for member in category_members:
+                member["url"] = url_for(
+                    "wiki_article", project=project, lang=lang, title=member["title"]
+                )
 
-        # Get categories the article is in
         if "categories" in page:
             categories = page["categories"]
-
             for category in categories:
                 category["url"] = url_for(
                     "wiki_article",
@@ -810,16 +375,13 @@ def wiki_article(
 
     interwiki = langsort(interwiki)
 
-    # Handle File namespace
-    # (ID 6 according to https://www.mediawiki.org/wiki/Help:Namespaces)
+    # Handle File namespace (ns=6)
     if page.get("ns") == 6:
         try:
             file_info = fetch_file_info(base_url, title)
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                return render_rate_limited(
-                    get_retry_after(e), lang=lang, project=project
-                )
+                return render_rate_limited(get_retry_after(e), lang=lang, project=project)
             raise
 
         if file_info.get("url"):
@@ -837,17 +399,13 @@ def wiki_article(
             file_desc_html = fetch_file_page_content(base_url, title)
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                return render_rate_limited(
-                    get_retry_after(e), lang=lang, project=project
-                )
+                return render_rate_limited(get_retry_after(e), lang=lang, project=project)
             raise
 
         if file_desc_html:
             desc_soup = BeautifulSoup(file_desc_html, "html.parser")
 
-            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all(
-                "area", href=True
-            ):
+            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all("area", href=True):
                 href = a["href"]
                 if href.startswith("/wiki/"):
                     a["href"] = f"/{project}/{lang}{href}"
@@ -881,7 +439,6 @@ def wiki_article(
             interwiki=interwiki,
         )
 
-    # Fetch article content using cached function
     try:
         variant = request.args.get("variant", None)
         article_html = fetch_article_content(base_url, title, variant)
@@ -914,7 +471,6 @@ def wiki_article(
             )
 
     soup = BeautifulSoup(article_html, "html.parser")
-
     body = soup.find("body")
 
     if not body:
@@ -922,43 +478,28 @@ def wiki_article(
         soup = BeautifulSoup(article_html, "html.parser")
         body = soup.find("div", class_="mw-body-content")
 
-    # Turn the body into a div
     body.name = "div"
 
-    # If the article is a redirect, follow the redirect, unless the `redirect=no` query parameter is present
     redirect_message = soup.find("div", class_="redirectMsg")
     if redirect_message and not (request.args.get("redirect") == "no"):
         redirect_dest = redirect_message.find("a")["title"]
         logger.debug(f"Redirecting to {redirect_dest}")
-        destination = url_for(
-            "wiki_article", project=project, lang=lang, title=redirect_dest
-        )
+        destination = url_for("wiki_article", project=project, lang=lang, title=redirect_dest)
         logger.debug(f"Redirect URL: {destination}")
         return redirect(destination)
 
-    # Update links to other articles
     for a in soup.find_all("a", href=True) + soup.find_all("area", href=True):
         href = a["href"]
 
-        # Internal links
         if href.startswith("/wiki/"):
             a["href"] = f"/{project}/{lang}{href}"
-
-        # External links
         elif href.startswith("//") or href.startswith("https://"):
             parts = urlparse(href)
-
             target_domain = f"https://{parts.netloc}"
             path_parts = parts.path.split("/")
-
-            target_title = None
-
-            if len(path_parts) >= 3:
-                target_title = "/".join(path_parts[2:])
-
+            target_title = "/".join(path_parts[2:]) if len(path_parts) >= 3 else None
             found = False
 
-            # Check if it is an interwiki link
             for language, language_projects in app.languages.items():
                 for project_name, project_url in language_projects["projects"].items():
                     if project_url == target_domain:
@@ -976,8 +517,6 @@ def wiki_article(
                                 lang=language,
                             )
                         found = True
-
-                    # Try to check if it is a link to the "main page" of a project
                     elif (
                         language == "en"
                         and project_url.replace("en.", "www.") == target_domain
@@ -986,18 +525,14 @@ def wiki_article(
                 if found:
                     break
 
-    # Remove edit sections and styles
     for span in soup.find_all("span", class_="mw-editsection"):
         span.decompose()
 
     for style in soup.find_all("style"):
         style.decompose()
 
-    # Proxy images and videos
     for img in soup.find_all("img"):
         img["src"] = get_proxy_url(img["src"])
-
-        # While we're at it, ensure that images are loaded lazily
         img["loading"] = "lazy"
 
     for source in soup.find_all("source"):
@@ -1006,38 +541,29 @@ def wiki_article(
     for video in soup.find_all("video"):
         video["poster"] = get_proxy_url(video["poster"])
 
-    # Convert category elements to links
     for link in soup.find_all("link", rel="mw:PageProp/Category"):
         link.name = "a"
         link.string = link["href"][2:].replace("_", " ")
         link["class"] = "category-link"
 
-    # Remove meta links
     for li in soup.find_all("li"):
         if any(cls in li.get("class", []) for cls in ["nv-view", "nv-talk", "nv-edit"]):
             li.decompose()
 
-    # Add classes to reference links
     for span in soup.find_all(class_="mw-reflink-text"):
         parent = span.parent
         if parent.attrs.get("data-mw-group", None):
             span["class"] = span.get("class", []) + [parent.attrs["data-mw-group"]]
 
-    # Check if the article is in a right-to-left language
     rtl = bool(soup.find("div", class_="mw-parser-output", dir="rtl"))
 
-    # Edge case: When passing the `ku-arab` variant, the article is in Arabic
-    # script but the direction returned in the API response is still LTR.
     if request.args.get("variant") == "ku-arab":
         rtl = True
         body["dir"] = "rtl"
 
     processed_html = str(body)
-
-    # Get license information for the article
     license = fetch_license_info(base_url, title)
 
-    # Render the article
     return render_template(
         "article.html",
         title=title.replace("_", " "),
@@ -1055,12 +581,8 @@ def wiki_article(
 
 @app.route("/<project>/<lang>/search/<path:query>")
 def search_results(project, lang, query):
-    language_projects = app.languages.get(lang, {}).get("projects", {})
-    base_url = language_projects.get(project)
-
-    if not base_url:
-        special_projects = app.languages.get("special", {}).get("projects", {})
-        base_url = special_projects.get(project)
+    """Fetch and render search results from the Wikimedia Action API."""
+    base_url = _resolve_base_url(project, lang)
 
     if not base_url:
         return (
@@ -1075,7 +597,7 @@ def search_results(project, lang, query):
     logger.debug(f"Searching {base_url} for {query}")
 
     try:
-        search_results = fetch_search_results(base_url, query)
+        results = fetch_search_results(base_url, query)
     except Exception:
         return (
             render_template(
@@ -1089,7 +611,7 @@ def search_results(project, lang, query):
     return render_template(
         "search_results.html",
         query=query,
-        search_results=search_results,
+        search_results=results,
         project=project,
         lang=lang,
     )
@@ -1097,32 +619,13 @@ def search_results(project, lang, query):
 
 @app.route("/<project>/<lang>/wiki/Special:Search/<query>")
 def search_redirect(project: str, lang: str, query: str) -> Response:
-    """Redirects to the search results page.
-
-    Args:
-        project (str): The Wikimedia project code.
-        lang (str): The language code.
-        query (str): The search query.
-
-    Returns:
-        Response: A redirect to the search results page.
-    """
+    """Redirect MediaWiki ``Special:Search`` URLs to the Wikimore search results route."""
     return redirect(url_for("search_results", project=project, lang=lang, query=query))
 
 
 @app.route("/<project>/<lang>/w/index.php")
 def index_php_redirect(project, lang) -> Response:
-    """Redirects to the main page of a Wikimedia project.
-
-    Args:
-        project (str): The Wikimedia project code.
-        lang (str): The language code.
-
-    Returns:
-        Response: A redirect to the main page of the Wikimedia project.
-    """
-    # TODO: Handle query string
-
+    """Redirect ``/w/index.php`` to the project's main page."""
     try:
         url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
     except KeyError:
@@ -1136,18 +639,17 @@ def index_php_redirect(project, lang) -> Response:
                     content=f"Sorry, the project {project} does not exist in the {lang} language.",
                 ),
             )
+
     with urlopen(url) as response:
         data = json.loads(response.read().decode())
     main_page = data["query"]["general"]["mainpage"]
 
-    return redirect(
-        url_for("wiki_article", project=project, lang=lang, title=main_page)
-    )
+    return redirect(url_for("wiki_article", project=project, lang=lang, title=main_page))
 
 
 @app.route("/version")
 def version() -> Text:
-    """Returns the current version of the application as JSON."""
+    """Return the running application version as JSON."""
     return Response(
         json.dumps({"version": get_version()}),
         mimetype="application/json",
@@ -1155,7 +657,7 @@ def version() -> Text:
 
 
 def main():
-    """Start the Flask app."""
+    """Entry point: read configuration from environment variables and start Flask."""
     port = int(os.environ.get("WIKIMORE_PORT", os.environ.get("PORT", 8109)))
     host = os.environ.get("WIKIMORE_HOST", os.environ.get("HOST", "0.0.0.0"))
     debug = DEBUG_ENABLED
