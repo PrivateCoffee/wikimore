@@ -44,7 +44,7 @@ def get_instance_hostname() -> str:
     then ``request.host``.  Falls back to ``"unknown"`` outside a request context.
     """
     # Import here to avoid a hard Flask dependency at module load time
-    from flask import request
+    from flask import request  # noqa: PLC0415
 
     if env_host := os.environ.get("WIKIMORE_INSTANCE_HOSTNAME"):
         return env_host

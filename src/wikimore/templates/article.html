@@ -38,14 +38,14 @@
         </div>
     {% endif %}
     {% if toc and toc|length >= 3 %}
-    <div id="wm-toc" class="{% if rtl %}wm-toc-rtl{% endif %}">
-        <span class="wm-toc-heading">Contents</span>
-        <ol class="wm-toc-list">
-            {% for entry in toc %}
-                <li class="wm-toc-h{{ entry.level }}"><a href="#{{ entry.id }}">{{ entry.text }}</a></li>
-            {% endfor %}
-        </ol>
-    </div>
+        <div id="wm-toc" class="{% if rtl %}wm-toc-rtl{% endif %}">
+            <span class="wm-toc-heading">Contents</span>
+            <ol class="wm-toc-list">
+                {% for entry in toc %}
+                    <li class="wm-toc-h{{ entry.level }}"><a href="#{{ entry.id }}">{{ entry.text }}</a></li>
+                {% endfor %}
+            </ol>
+        </div>
     {% endif %}
     {{ content|safe }}
     {% if category_members %}

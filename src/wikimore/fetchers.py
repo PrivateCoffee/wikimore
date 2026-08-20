@@ -93,7 +93,9 @@ def get_active_users(languages: dict) -> List[Tuple[str, int]]:
             return lang, None
 
     with ThreadPoolExecutor(max_workers=20) as pool:
-        futures = {pool.submit(_fetch, lang, data): lang for lang, data in languages.items()}
+        futures = {
+            pool.submit(_fetch, lang, data): lang for lang, data in languages.items()
+        }
         for future in as_completed(futures):
             lang, count = future.result()
             if count is not None:
@@ -131,7 +133,9 @@ def fetch_article_content(base_url: str, title: str, variant=None) -> str:
 def fetch_search_results(base_url: str, query: str) -> list:
     """Search ``base_url`` via the Action API and return the ``search`` result list. Cached 30 min."""
     srquery = escape(quote(query.replace(" ", "_")), True)
-    url = f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
+    url = (
+        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
+    )
     logger.debug(f"Fetching search results from {url}")
 
     try:

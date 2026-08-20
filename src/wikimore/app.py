@@ -4,8 +4,8 @@ import os
 import pathlib
 import sys
 import urllib.error
-from typing import Dict, Text, Tuple, Union
-from urllib.parse import quote, urlencode, urlparse
+from typing import Text, Tuple, Union
+from urllib.parse import urlencode, urlparse
 
 from bs4 import BeautifulSoup
 from flask import (
@@ -100,9 +100,11 @@ def langsort(input: list[dict], key: str = "lang") -> list[dict]:
 
 logger.debug("Initialized language sort order")
 
-app_languages = [{"lang": lang, "name": data["name"]} for lang, data in app.languages.items()]
+app_languages = [
+    {"lang": lang, "name": data["name"]} for lang, data in app.languages.items()
+]
 app_languages = langsort(app_languages)
-app.languages = {lang: app.languages[lang] for lang in [l["lang"] for l in app_languages]}
+app.languages = {entry["lang"]: app.languages[entry["lang"]] for entry in app_languages}
 
 
 def render_template(*args, **kwargs) -> Text:
@@ -392,7 +394,9 @@ def wiki_article(
             file_info = fetch_file_info(base_url, title)
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+                return render_rate_limited(
+                    get_retry_after(e), lang=lang, project=project
+                )
             raise
 
         if file_info.get("url"):
@@ -410,13 +414,17 @@ def wiki_article(
             file_desc_html = fetch_file_page_content(base_url, title)
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+                return render_rate_limited(
+                    get_retry_after(e), lang=lang, project=project
+                )
             raise
 
         if file_desc_html:
             desc_soup = BeautifulSoup(file_desc_html, "html.parser")
 
-            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all("area", href=True):
+            for a in desc_soup.find_all("a", href=True) + desc_soup.find_all(
+                "area", href=True
+            ):
                 href = a["href"]
                 if href.startswith("/wiki/"):
                     a["href"] = f"/{project}/{lang}{href}"
@@ -495,7 +503,9 @@ def wiki_article(
     if redirect_message and not (request.args.get("redirect") == "no"):
         redirect_dest = redirect_message.find("a")["title"]
         logger.debug(f"Redirecting to {redirect_dest}")
-        destination = url_for("wiki_article", project=project, lang=lang, title=redirect_dest)
+        destination = url_for(
+            "wiki_article", project=project, lang=lang, title=redirect_dest
+        )
         logger.debug(f"Redirect URL: {destination}")
         return redirect(destination)
 
@@ -554,12 +564,13 @@ def wiki_article(
         if heading_id:
             heading_text = heading.get_text(strip=True)
             if heading_text:
-                toc_entries.append({
-                    "level": int(heading.name[1]),
-                    "id": heading_id,
-                    "text": heading_text,
-                })
-
+                toc_entries.append(
+                    {
+                        "level": int(heading.name[1]),
+                        "id": heading_id,
+                        "text": heading_text,
+                    }
+                )
 
     for style in soup.find_all("style"):
         style.decompose()
@@ -672,7 +683,9 @@ def index_php_redirect(project, lang) -> Response:
         data = json.loads(response.read().decode())
     main_page = data["query"]["general"]["mainpage"]
 
-    return redirect(url_for("wiki_article", project=project, lang=lang, title=main_page))
+    return redirect(
+        url_for("wiki_article", project=project, lang=lang, title=main_page)
+    )
 
 
 @app.route("/version")
