@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import sys
 import urllib.error
 from typing import Text, Tuple, Union
@@ -158,6 +159,21 @@ def render_rate_limited(
     )
 
 
+_WIKIMEDIA_THUMB_SIZES = [24, 48, 120, 200, 240, 320, 400, 640, 800, 1024, 1280, 1920, 2560]
+_WIKIMEDIA_THUMB_RE = re.compile(r"(upload\.wikimedia\.org/.+/thumb/.+/)(\d+)(px-[^/]+)$")
+
+
+def _snap_thumb_size(url: str) -> str:
+    m = _WIKIMEDIA_THUMB_RE.search(url)
+    if not m:
+        return url
+    requested = int(m.group(2))
+    snapped = next((s for s in _WIKIMEDIA_THUMB_SIZES if s >= requested), _WIKIMEDIA_THUMB_SIZES[-1])
+    if snapped == requested:
+        return url
+    return url[: m.start(2)] + str(snapped) + url[m.end(2) :]
+
+
 @app.route("/proxy")
 def proxy() -> bytes:
     """Proxy Wikimedia Commons and Wikimedia Maps assets through this server."""
@@ -172,7 +188,11 @@ def proxy() -> bytes:
 
     logger.debug(f"Proxying {url}")
 
-    response = urlopen(url)
+    try:
+        response = urlopen(url)
+    except urllib.error.HTTPError as e:
+        return Response(status=e.code)
+
     content_type = response.headers.get("Content-Type", "application/octet-stream")
 
     def stream():
