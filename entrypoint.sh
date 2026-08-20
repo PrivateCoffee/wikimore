@@ -1,23 +1,27 @@
 #!/bin/sh
-UWSGI_HOST="${WIKIMORE_HOST:-${HOST:-0.0.0.0}}"
-UWSGI_PORT="${WIKIMORE_PORT:-${PORT:-8109}}"
-UWSGI_SOCKET="${WIKIMORE_SOCKET:-${SOCKET:-}}"
+set -e
 
-args="--plugin python3 --master --module wikimore.app:app -H /opt/venv"
-if [ -n "$UWSGI_SOCKET" ]; then
-    case "$UWSGI_SOCKET" in
-         unix:*) ;;
-         /*) UWSGI_SOCKET="unix:$UWSGI_SOCKET" ;;
+BIND_HOST="${WIKIMORE_HOST:-${HOST:-0.0.0.0}}"
+BIND_PORT="${WIKIMORE_PORT:-${PORT:-8109}}"
+BIND_SOCKET="${WIKIMORE_SOCKET:-${SOCKET:-}}"
+
+if [ -n "$BIND_SOCKET" ]; then
+    case "$BIND_SOCKET" in
+        unix:*) BIND="$BIND_SOCKET" ;;
+        *) BIND="unix:$BIND_SOCKET" ;;
     esac
-    args="$args --http-socket $UWSGI_SOCKET"
 else
-    args="$args --http-socket $UWSGI_HOST:$UWSGI_PORT"
+    BIND="$BIND_HOST:$BIND_PORT"
 fi
 
-if [ "$UWSGI_PROCESSES" ]; then
-    args="$args --processes $UWSGI_PROCESSES"
+set -- --bind "$BIND" --worker-class gevent --access-logfile -
+
+if [ -n "$WIKIMORE_WORKERS" ]; then
+    set -- "$@" --workers "$WIKIMORE_WORKERS"
 fi
-if [ "$UWSGI_THREADS" ]; then
-    args="$args --threads $UWSGI_THREADS"
+
+if [ -n "$WIKIMORE_THREADS" ]; then
+    set -- "$@" --threads "$WIKIMORE_THREADS"
 fi
-exec /usr/sbin/uwsgi $args
+
+exec gunicorn "$@" wikimore.app:app

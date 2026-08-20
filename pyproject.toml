@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = ["flask", "bs4", "flask-caching"]
 
-optional-dependencies = { redis = ["redis"] }
+optional-dependencies = { redis = ["redis"], gunicorn = ["gunicorn", "gevent"] }
 
 [project.scripts]
 wikimore = "wikimore.app:main"

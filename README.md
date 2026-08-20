@@ -139,6 +139,8 @@ You can configure Wikimore using environment variables. The following variables 
 | WIKIMORE_CACHE_DIR         | The directory to use for FileSystemCache (only if WIKIMORE_CACHE_TYPE is FileSystemCache) | /tmp/wikimore_cache                 |
 | WIKIMORE_REDIS_URL         | The Redis URL to use for RedisCache (if set, WIKIMORE_CACHE_TYPE is RedisCache)           | (not set)                           |
 | WIKIMORE_CACHE_TIMEOUT     | The cache timeout in seconds                                                              | 3600 (= 1 hour)                     |
+| WIKIMORE_WORKERS           | Number of gunicorn worker processes                                                       | (gunicorn default)                  |
+| WIKIMORE_THREADS           | Number of threads per gunicorn worker                                                     | (gunicorn default)                  |
 
 ## License
 
