@@ -50,7 +50,11 @@ def create_app():
 app = create_app()
 
 
-app.wikimedia_projects, app.languages = get_wikimedia_projects()
+try:
+    app.wikimedia_projects, app.languages = get_wikimedia_projects()
+except Exception as e:
+    logger.fatal(f"Failed to fetch Wikimedia sitematrix at startup: {e}")
+    sys.exit(1)
 
 logger.debug(
     f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
