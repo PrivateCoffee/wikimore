@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 import urllib.error
 from typing import Text, Tuple, Union
 from urllib.parse import urlencode, urlparse
@@ -52,11 +53,27 @@ def create_app():
 app = create_app()
 
 
-try:
-    app.wikimedia_projects, app.languages = get_wikimedia_projects()
-except Exception as e:
-    logger.fatal(f"Failed to fetch Wikimedia sitematrix at startup: {e}")
-    sys.exit(1)
+_SITEMATRIX_MAX_RETRIES = 5
+_SITEMATRIX_DEFAULT_WAIT = 60
+
+for _attempt in range(_SITEMATRIX_MAX_RETRIES):
+    try:
+        app.wikimedia_projects, app.languages = get_wikimedia_projects()
+        break
+    except urllib.error.HTTPError as e:
+        if e.code == 429 and _attempt < _SITEMATRIX_MAX_RETRIES - 1:
+            wait = get_retry_after(e) or _SITEMATRIX_DEFAULT_WAIT
+            logger.warning(
+                f"Rate limited fetching sitematrix, retrying in {wait}s "
+                f"(attempt {_attempt + 1}/{_SITEMATRIX_MAX_RETRIES})"
+            )
+            time.sleep(wait)
+        else:
+            logger.fatal(f"Failed to fetch Wikimedia sitematrix at startup: {e}")
+            sys.exit(1)
+    except Exception as e:
+        logger.fatal(f"Failed to fetch Wikimedia sitematrix at startup: {e}")
+        sys.exit(1)
 
 logger.debug(
     f"Loaded {len(app.wikimedia_projects)} Wikimedia projects and {len(app.languages)} languages"
