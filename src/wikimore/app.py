@@ -160,7 +160,7 @@ def render_rate_limited(
 ) -> tuple:
     content = "<p>The upstream server is rate-limiting requests."
     if retry_after:
-        content += f" This page will reload automatically in {retry_after} seconds."
+        content += f' This page will reload automatically in <span id="wm-countdown">{retry_after}</span> seconds.'
     else:
         content += " Please try again later."
     content += "</p>"

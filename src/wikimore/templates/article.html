@@ -1,7 +1,24 @@
 {% extends "base.html" %}
 {% block head %}
     {% if retry_after %}
-        <meta http-equiv="refresh" content="{{ retry_after }}">
+        <meta http-equiv="refresh" content="{{ retry_after }}" id="wm-refresh-meta">
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var meta = document.getElementById('wm-refresh-meta');
+            if (meta) meta.parentNode.removeChild(meta);
+            var el = document.getElementById('wm-countdown');
+            if (!el) return;
+            var seconds = {{ retry_after }};
+            var interval = setInterval(function() {
+                seconds--;
+                el.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    location.reload();
+                }
+            }, 1000);
+        });
+        </script>
     {% endif %}
 {% endblock %}
 {% block content %}
