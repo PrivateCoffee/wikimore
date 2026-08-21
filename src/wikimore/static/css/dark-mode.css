@@ -314,3 +314,27 @@ body.dark-mode {
         margin: 10px 0;
     }
 }
+
+/* Preview tooltip */
+.dark-mode #wm-preview {
+    background-color: var(--dark-infobox-bg);
+    border-color: var(--dark-border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    color: var(--dark-text-color);
+}
+
+.dark-mode .wm-preview-thumb {
+    border-color: var(--dark-border-color);
+}
+
+.dark-mode .wm-preview-title {
+    color: var(--dark-text-color);
+}
+
+.dark-mode .wm-preview-desc {
+    color: #a0a0a0;
+}
+
+.dark-mode .wm-preview-extract {
+    color: var(--dark-text-color);
+}

@@ -35,7 +35,7 @@
         </script>
         {% block head %}{% endblock %}
     </head>
-    <body>
+    <body data-project="{{ project }}" data-lang="{{ lang }}">
         <div id="header">
             <div class="header-inner">
                 <a href="/" class="site-name">Wikimore</a>
@@ -77,5 +77,6 @@
                 <p>Brought to you by <a href="https://git.private.coffee/privatecoffee/wikimore">Wikimore</a>, a <a href="https://private.coffee">Private.coffee</a> project</p>
             </div>
         </div>
+        <script src="{{ url_for('static', filename='js/preview.js') }}"></script>
     </body>
 </html>

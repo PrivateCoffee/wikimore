@@ -240,6 +240,23 @@ def fetch_file_info(base_url: str, title: str) -> dict:
         return {}
 
 
+@cache.memoize(timeout=3600)
+def fetch_article_summary(base_url: str, title: str) -> dict:
+    """Fetch REST v1 page summary for article hover previews. Cached 1 h.
+
+    Returns a dict with title, description, extract, and thumbnail keys
+    (only those present in the upstream response).
+    Re-raises ``HTTPError`` so callers can handle 404/429 themselves.
+    """
+    url = f"{base_url}/api/rest_v1/page/summary/{escape(quote(title.replace(' ', '_')), True)}"
+    try:
+        with urlopen(url) as response:
+            data = json.loads(response.read().decode())
+    except urllib.error.HTTPError:
+        raise
+    return {k: data[k] for k in ("title", "description", "extract", "thumbnail") if k in data}
+
+
 @cache.memoize(timeout=1800)
 def fetch_file_page_content(base_url: str, title: str) -> str:
     """Fetch the rendered HTML description of a File page via the parse API. Cached 30 min."""

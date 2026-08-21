@@ -25,6 +25,7 @@ from .config import DEBUG_ENABLED, get_retry_after, get_version, urlopen
 from .fetchers import (
     fetch_article_content,
     fetch_article_info,
+    fetch_article_summary,
     fetch_badge_data,
     fetch_category_members,
     fetch_file_info,
@@ -706,6 +707,30 @@ def index_php_redirect(project, lang) -> Response:
     return redirect(
         url_for("wiki_article", project=project, lang=lang, title=main_page)
     )
+
+
+@app.route("/<project>/<lang>/api/preview/<path:title>")
+def article_preview(project: str, lang: str, title: str) -> Response:
+    """Return a JSON page summary used by the client-side hover preview tooltip."""
+    base_url = _resolve_base_url(project, lang)
+    if not base_url:
+        return Response(
+            json.dumps({"error": "Project not found"}), status=404, mimetype="application/json"
+        )
+    try:
+        summary = fetch_article_summary(base_url, title)
+    except urllib.error.HTTPError as e:
+        return Response(
+            json.dumps({"error": str(e.code)}), status=e.code, mimetype="application/json"
+        )
+    except Exception as e:
+        logger.error(f"Error fetching summary for {title}: {e}")
+        return Response(
+            json.dumps({"error": "Internal error"}), status=500, mimetype="application/json"
+        )
+    if "thumbnail" in summary and "source" in summary.get("thumbnail", {}):
+        summary["thumbnail"]["source"] = get_proxy_url(summary["thumbnail"]["source"])
+    return Response(json.dumps(summary), mimetype="application/json")
 
 
 @app.route("/version")

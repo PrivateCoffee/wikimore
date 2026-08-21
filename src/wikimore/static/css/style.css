@@ -1638,3 +1638,61 @@ Currently blocked by implementation of comments retrieval in the backend
     font-weight: bold;
     white-space: nowrap;
 }
+
+/* Article hover preview tooltip */
+#wm-preview {
+    position: fixed;
+    z-index: 1000;
+    max-width: 320px;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    pointer-events: auto;
+    color: var(--text-color);
+}
+
+#wm-preview[hidden] {
+    display: none;
+}
+
+.wm-preview-thumb {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--border-light);
+}
+
+.wm-preview-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.wm-preview-title {
+    font-weight: 600;
+    color: var(--text-color);
+    display: block;
+}
+
+.wm-preview-desc {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    display: block;
+}
+
+.wm-preview-extract {
+    margin: 0.25rem 0 0;
+    color: var(--text-color);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
