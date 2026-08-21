@@ -160,8 +160,24 @@ def render_rate_limited(
     )
 
 
-_WIKIMEDIA_THUMB_SIZES = [24, 48, 120, 200, 240, 320, 400, 640, 800, 1024, 1280, 1920, 2560]
-_WIKIMEDIA_THUMB_RE = re.compile(r"(upload\.wikimedia\.org/.+/thumb/.+/)(\d+)(px-[^/]+)$")
+_WIKIMEDIA_THUMB_SIZES = [
+    24,
+    48,
+    120,
+    200,
+    240,
+    320,
+    400,
+    640,
+    800,
+    1024,
+    1280,
+    1920,
+    2560,
+]
+_WIKIMEDIA_THUMB_RE = re.compile(
+    r"(upload\.wikimedia\.org/.+/thumb/.+/)(\d+)(px-[^/]+)$"
+)
 
 
 def _snap_thumb_size(url: str) -> str:
@@ -169,7 +185,10 @@ def _snap_thumb_size(url: str) -> str:
     if not m:
         return url
     requested = int(m.group(2))
-    snapped = next((s for s in _WIKIMEDIA_THUMB_SIZES if s >= requested), _WIKIMEDIA_THUMB_SIZES[-1])
+    snapped = next(
+        (s for s in _WIKIMEDIA_THUMB_SIZES if s >= requested),
+        _WIKIMEDIA_THUMB_SIZES[-1],
+    )
     if snapped == requested:
         return url
     return url[: m.start(2)] + str(snapped) + url[m.end(2) :]
@@ -715,18 +734,24 @@ def article_preview(project: str, lang: str, title: str) -> Response:
     base_url = _resolve_base_url(project, lang)
     if not base_url:
         return Response(
-            json.dumps({"error": "Project not found"}), status=404, mimetype="application/json"
+            json.dumps({"error": "Project not found"}),
+            status=404,
+            mimetype="application/json",
         )
     try:
         summary = fetch_article_summary(base_url, title)
     except urllib.error.HTTPError as e:
         return Response(
-            json.dumps({"error": str(e.code)}), status=e.code, mimetype="application/json"
+            json.dumps({"error": str(e.code)}),
+            status=e.code,
+            mimetype="application/json",
         )
     except Exception as e:
         logger.error(f"Error fetching summary for {title}: {e}")
         return Response(
-            json.dumps({"error": "Internal error"}), status=500, mimetype="application/json"
+            json.dumps({"error": "Internal error"}),
+            status=500,
+            mimetype="application/json",
         )
     if "thumbnail" in summary and "source" in summary.get("thumbnail", {}):
         summary["thumbnail"]["source"] = get_proxy_url(summary["thumbnail"]["source"])

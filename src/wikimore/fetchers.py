@@ -254,7 +254,11 @@ def fetch_article_summary(base_url: str, title: str) -> dict:
             data = json.loads(response.read().decode())
     except urllib.error.HTTPError:
         raise
-    return {k: data[k] for k in ("title", "description", "extract", "thumbnail") if k in data}
+    return {
+        k: data[k]
+        for k in ("title", "description", "extract", "thumbnail")
+        if k in data
+    }
 
 
 @cache.memoize(timeout=1800)
