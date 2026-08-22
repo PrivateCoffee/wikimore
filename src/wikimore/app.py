@@ -327,7 +327,9 @@ def _wikimore_url_for_external(url: str) -> str | None:
                         lang=language,
                         title=target_title,
                     )
-                return url_for("index_php_redirect", project=project_name, lang=language)
+                return url_for(
+                    "index_php_redirect", project=project_name, lang=language
+                )
     return None
 
 
@@ -345,7 +347,9 @@ def wiki_article(
     prefix, sep, rest = title.partition(":")
     if sep and prefix in app.languages:
         # Language interwiki: "en:Category:Iraq_War" → /project/en/wiki/Category:Iraq_War
-        return redirect(url_for("wiki_article", project=project, lang=prefix, title=rest))
+        return redirect(
+            url_for("wiki_article", project=project, lang=prefix, title=rest)
+        )
 
     base_url = _resolve_base_url(project, lang)
 
@@ -644,7 +648,9 @@ def wiki_article(
                             language == "en"
                             and project_url.replace("en.", "www.") == target_domain
                         ):
-                            a["href"] = url_for("home", project=project_name, lang=language)
+                            a["href"] = url_for(
+                                "home", project=project_name, lang=language
+                            )
         elif href.startswith("./") and ":" in href:
             iw_part = unquote(href[2:])
             iw_prefix, iw_sep, iw_rest = iw_part.partition(":")
