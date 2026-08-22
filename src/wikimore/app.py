@@ -126,12 +126,22 @@ app_languages = [
 app_languages = langsort(app_languages)
 app.languages = {entry["lang"]: app.languages[entry["lang"]] for entry in app_languages}
 
+# Build reverse domain -> (project, lang, base_url) lookup for O(1) route resolution
+app.domain_to_wiki_info = {}
+for _lang, _lang_data in app.languages.items():
+    for _project, _project_url in _lang_data["projects"].items():
+        _netloc = urlparse(_project_url).netloc
+        app.domain_to_wiki_info[_netloc] = (_project, _lang, _project_url)
+
+logger.debug(f"Indexed {len(app.domain_to_wiki_info)} wiki domains")
+
 
 def render_template(*args, **kwargs) -> Text:
     """Wrapper around Flask's ``render_template`` that injects ``languages`` and
     ``wikimedia_projects`` into every template context."""
     kwargs.setdefault("lang", "en")
     kwargs.setdefault("project", "wiki")
+    kwargs.setdefault("domain", None)
     return flask_render_template(
         *args,
         **kwargs,
@@ -157,7 +167,10 @@ def get_proxy_url(url: str) -> str:
 
 
 def render_rate_limited(
-    retry_after: int | None, lang: str = "en", project: str = "wiki"
+    retry_after: int | None,
+    lang: str = "en",
+    project: str = "wiki",
+    domain: str | None = None,
 ) -> tuple:
     content = "<p>The upstream server is rate-limiting requests."
     if retry_after:
@@ -173,6 +186,7 @@ def render_rate_limited(
             retry_after=retry_after,
             lang=lang,
             project=project,
+            domain=domain,
         ),
         429,
     )
@@ -264,33 +278,41 @@ def search() -> Union[Text, Response]:
                 content="Please select a language and a project.",
             )
 
-        if not query:
-            return redirect(url_for("index_php_redirect", project=project, lang=lang))
+        base_url = _resolve_base_url(project, lang)
+        if not base_url:
+            return render_template(
+                "article.html",
+                title="Error",
+                content=f"Project {project}/{lang} not found.",
+            )
 
-        return redirect(
-            url_for("search_results", project=project, lang=lang, query=query)
-        )
+        domain = urlparse(base_url).netloc
+
+        if not query:
+            return redirect(url_for("index_php_redirect_by_domain", domain=domain))
+
+        return redirect(url_for("search_results_by_domain", domain=domain, query=query))
     return render_template("search.html")
 
 
 @app.route("/<domain>/<path:url>")
 def inbound_redirect(domain: str, url: str) -> Union[Text, Response, Tuple[Text, int]]:
-    """Redirect bare Wikimedia domain URLs (e.g. ``en.wikipedia.org/wiki/…``) to
-    the equivalent internal Wikimore route."""
-    for language, language_projects in app.languages.items():
-        for project_name, project_url in language_projects["projects"].items():
-            if project_url == f"https://{domain}":
-                return redirect(f"{url_for('home')}{project_name}/{language}/{url}")
-
-    for project_name, project_url in app.languages["special"]["projects"].items():
-        if project_url == f"https://{domain}":
-            return redirect(f"{url_for('home')}{project_name}/special/{url}")
-
+    """Catch-all for domain-prefixed URLs not matched by a more specific route."""
+    if domain not in app.domain_to_wiki_info:
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, {domain} is not a recognized wiki.",
+            ),
+            404,
+        )
     return (
         render_template(
             "article.html",
-            title="Project does not exist",
-            content=f"Sorry, the project {domain} does not exist.",
+            title="Page not found",
+            content=f"The requested path was not found on {domain}.",
+            domain=domain,
         ),
         404,
     )
@@ -301,6 +323,11 @@ def _resolve_base_url(project: str, lang: str) -> str | None:
     if not base_url:
         base_url = app.languages.get("special", {}).get("projects", {}).get(project)
     return base_url
+
+
+def _resolve_for_domain(domain: str) -> tuple[str, str, str] | None:
+    """Return ``(project, lang, base_url)`` for a known wiki domain, or ``None``."""
+    return app.domain_to_wiki_info.get(domain)
 
 
 def _wikimore_url_for_external(url: str) -> str | None:
@@ -314,57 +341,44 @@ def _wikimore_url_for_external(url: str) -> str | None:
     if not url.startswith("https://"):
         return None
     parts = urlparse(url)
-    target_domain = f"https://{parts.netloc}"
+    netloc = parts.netloc
+    if netloc not in app.domain_to_wiki_info:
+        return None
     path_parts = parts.path.split("/")
     target_title = unquote("/".join(path_parts[2:])) if len(path_parts) >= 3 else None
-    for language, lang_data in app.languages.items():
-        for project_name, project_url in lang_data["projects"].items():
-            if project_url == target_domain:
-                if target_title:
-                    return url_for(
-                        "wiki_article",
-                        project=project_name,
-                        lang=language,
-                        title=target_title,
-                    )
-                return url_for(
-                    "index_php_redirect", project=project_name, lang=language
-                )
-    return None
+    if target_title:
+        return url_for("wiki_article_by_domain", domain=netloc, title=target_title)
+    return url_for("index_php_redirect_by_domain", domain=netloc)
 
 
-@app.route("/<project>/<lang>/wiki/<path:title>")
-def wiki_article(
-    project: str, lang: str, title: str
+@app.route("/<domain>/wiki/<path:title>")
+def wiki_article_by_domain(
+    domain: str, title: str
 ) -> Union[Text, Response, Tuple[Text, int]]:
-    """Fetch and render a Wikimedia article, handling redirects, interwiki links,
-    file pages, category pages, and media proxying."""
-    # Collapse any residual percent-encoding from double-encoded Parsoid hrefs
-    # (e.g. %2520 decoded by Flask to %20 — unquote turns that into a plain space).
-    title = unquote(title)
-
-    # Redirect interwiki-prefixed titles to the correct route.
-    prefix, sep, rest = title.partition(":")
-    if sep and prefix in app.languages:
-        # Language interwiki: "en:Category:Iraq_War" → /project/en/wiki/Category:Iraq_War
-        return redirect(
-            url_for("wiki_article", project=project, lang=prefix, title=rest)
-        )
-
-    base_url = _resolve_base_url(project, lang)
-
-    if not base_url:
+    """Fetch and render a Wikimedia article for the given wiki domain (canonical URL format)."""
+    info = _resolve_for_domain(domain)
+    if not info:
         return (
             render_template(
                 "article.html",
                 title="Project does not exist",
-                content=f"Sorry, the project {project} does not exist in the {lang} language.",
+                content=f"Sorry, {domain} is not a recognized wiki.",
             ),
             404,
         )
+    project, lang, base_url = info
+
+    title = unquote(title)
+
+    prefix, sep, rest = title.partition(":")
+    if sep and prefix in app.languages:
+        target_project_url = app.languages.get(prefix, {}).get("projects", {}).get(project)
+        if target_project_url:
+            target_domain = urlparse(target_project_url).netloc
+            return redirect(url_for("wiki_article_by_domain", domain=target_domain, title=rest))
+        return redirect(url_for("wiki_article_by_domain", domain=domain, title=rest))
 
     if sep:
-        # Non-language interwiki: "wikt:cat", "commons:File:Example", etc.
         try:
             interwiki_map = fetch_interwiki_map(base_url)
         except Exception:
@@ -397,29 +411,27 @@ def wiki_article(
                 )
 
                 if interwiki_lang in app.languages:
-                    link["url"] = url_for(
-                        "wiki_article",
-                        project=project,
-                        lang=interwiki_lang,
-                        title=interwiki_title,
-                    )
+                    target_project_url = app.languages[interwiki_lang].get("projects", {}).get(project)
+                    if target_project_url:
+                        link["url"] = url_for(
+                            "wiki_article_by_domain",
+                            domain=urlparse(target_project_url).netloc,
+                            title=interwiki_title,
+                        )
                     link["langname"] = app.languages[interwiki_lang]["name"]
                 else:
                     parts = urlparse(link["url"])
-                    target_domain = f"https://{parts.netloc}"
-                    matched = False
-                    for language, language_data in app.languages.items():
-                        if language_data["projects"].get(project) == target_domain:
-                            link["url"] = url_for(
-                                "wiki_article",
-                                project=project,
-                                lang=language,
-                                title=interwiki_title,
-                            )
-                            link["langname"] = language_data["name"]
-                            matched = True
-                            break
-                    if not matched:
+                    if parts.netloc in app.domain_to_wiki_info:
+                        link["url"] = url_for(
+                            "wiki_article_by_domain",
+                            domain=parts.netloc,
+                            title=interwiki_title,
+                        )
+                        _, matched_lang, _ = app.domain_to_wiki_info[parts.netloc]
+                        link["langname"] = app.languages.get(matched_lang, {}).get(
+                            "name", interwiki_lang
+                        )
+                    else:
                         logger.debug(
                             f"No language match found for {interwiki_lang} ({link['url']}), using raw URL"
                         )
@@ -458,22 +470,21 @@ def wiki_article(
             category_members = fetch_category_members(base_url, title)
             for member in category_members:
                 member["url"] = url_for(
-                    "wiki_article", project=project, lang=lang, title=member["title"]
+                    "wiki_article_by_domain", domain=domain, title=member["title"]
                 )
 
         if "categories" in page:
             categories = page["categories"]
             for category in categories:
                 category["url"] = url_for(
-                    "wiki_article",
-                    project=project,
-                    lang=lang,
-                    title=category["title"],
+                    "wiki_article_by_domain", domain=domain, title=category["title"]
                 )
 
     except urllib.error.HTTPError as e:
         if e.code == 429:
-            return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+            return render_rate_limited(
+                get_retry_after(e), lang=lang, project=project, domain=domain
+            )
         logger.error(f"Error fetching article info: {e}")
         return (
             render_template(
@@ -482,6 +493,7 @@ def wiki_article(
                 content=f"An error occurred while fetching information about the article {title}.",
                 lang=lang,
                 project=project,
+                domain=domain,
             ),
             500,
         )
@@ -494,20 +506,20 @@ def wiki_article(
                 content=f"An error occurred while fetching information about the article {title}.",
                 lang=lang,
                 project=project,
+                domain=domain,
             ),
             500,
         )
 
     interwiki = langsort(interwiki)
 
-    # Handle File namespace (ns=6)
     if page.get("ns") == 6:
         try:
             file_info = fetch_file_info(base_url, title)
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 return render_rate_limited(
-                    get_retry_after(e), lang=lang, project=project
+                    get_retry_after(e), lang=lang, project=project, domain=domain
                 )
             raise
 
@@ -527,7 +539,7 @@ def wiki_article(
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 return render_rate_limited(
-                    get_retry_after(e), lang=lang, project=project
+                    get_retry_after(e), lang=lang, project=project, domain=domain
                 )
             raise
 
@@ -539,7 +551,7 @@ def wiki_article(
             ):
                 href = a["href"]
                 if href.startswith("/wiki/"):
-                    a["href"] = f"/{project}/{lang}{href}"
+                    a["href"] = f"/{domain}{href}"
 
             for span in desc_soup.find_all("span", class_="mw-editsection"):
                 span.decompose()
@@ -565,6 +577,7 @@ def wiki_article(
             content=file_desc_html,
             lang=lang,
             project=project,
+            domain=domain,
             license=license,
             categories=categories,
             interwiki=interwiki,
@@ -579,24 +592,28 @@ def wiki_article(
                 render_template(
                     "article.html",
                     title="Article not found",
-                    content=f"Sorry, the article {title} was not found in the {project} project in the {lang} language.",
+                    content=f"Sorry, the article {title} was not found on {domain}.",
                     lang=lang,
                     project=project,
+                    domain=domain,
                 ),
                 404,
             )
         elif e.code == 429:
-            return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+            return render_rate_limited(
+                get_retry_after(e), lang=lang, project=project, domain=domain
+            )
         else:
-            logger.error(f"Error fetching article {title} from {lang}.{project}: {e}")
+            logger.error(f"Error fetching article {title} from {domain}: {e}")
             logger.debug(f"Response: {e.read()}")
             return (
                 render_template(
                     "article.html",
                     title="Error",
-                    content=f"An error occurred while fetching the article {title} from the {project} project in the {lang} language.",
+                    content=f"An error occurred while fetching the article {title} from {domain}.",
                     lang=lang,
                     project=project,
+                    domain=domain,
                 ),
                 500,
             )
@@ -615,9 +632,7 @@ def wiki_article(
     if redirect_message and not (request.args.get("redirect") == "no"):
         redirect_dest = redirect_message.find("a")["title"]
         logger.debug(f"Redirecting to {redirect_dest}")
-        destination = url_for(
-            "wiki_article", project=project, lang=lang, title=redirect_dest
-        )
+        destination = url_for("wiki_article_by_domain", domain=domain, title=redirect_dest)
         logger.debug(f"Redirect URL: {destination}")
         return redirect(destination)
 
@@ -630,23 +645,21 @@ def wiki_article(
         href = a["href"]
 
         if href.startswith("/wiki/"):
-            a["href"] = f"/{project}/{lang}{href}"
+            a["href"] = f"/{domain}{href}"
         elif href.startswith("//") or href.startswith("https://"):
             wikimore_url = _wikimore_url_for_external(href)
             if wikimore_url:
                 a["href"] = wikimore_url
             elif href.startswith("//"):
-                # Protocol-relative: keep but normalise to https
                 pass
             else:
-                # Check www. variant for project home pages
                 parts = urlparse(href)
-                target_domain = f"https://{parts.netloc}"
+                target_domain_url = f"https://{parts.netloc}"
                 for language, lang_data in app.languages.items():
                     for project_name, project_url in lang_data["projects"].items():
                         if (
                             language == "en"
-                            and project_url.replace("en.", "www.") == target_domain
+                            and project_url.replace("en.", "www.") == target_domain_url
                         ):
                             a["href"] = url_for(
                                 "home", project=project_name, lang=language
@@ -656,9 +669,13 @@ def wiki_article(
             iw_prefix, iw_sep, iw_rest = iw_part.partition(":")
             if iw_sep:
                 if iw_prefix in app.languages:
-                    a["href"] = url_for(
-                        "wiki_article", project=project, lang=iw_prefix, title=iw_rest
-                    )
+                    target_project_url = app.languages[iw_prefix].get("projects", {}).get(project)
+                    if target_project_url:
+                        a["href"] = url_for(
+                            "wiki_article_by_domain",
+                            domain=urlparse(target_project_url).netloc,
+                            title=iw_rest,
+                        )
                 elif iw_prefix in article_interwiki_map:
                     ext_url = article_interwiki_map[iw_prefix].replace(
                         "$1", quote(iw_rest.replace(" ", "_"), safe=":@!$&'()*+,;=")
@@ -727,6 +744,7 @@ def wiki_article(
         content=processed_html,
         lang=lang,
         project=project,
+        domain=domain,
         rtl=rtl,
         license=license,
         interwiki=interwiki,
@@ -737,11 +755,10 @@ def wiki_article(
     )
 
 
-@app.route("/<project>/<lang>/search/<path:query>")
-def search_results(project, lang, query):
-    """Fetch and render search results from the Wikimedia Action API."""
+@app.route("/<project>/<lang>/wiki/<path:title>")
+def wiki_article(project: str, lang: str, title: str) -> Response:
+    """Legacy route: 301-redirect to the canonical domain-based URL."""
     base_url = _resolve_base_url(project, lang)
-
     if not base_url:
         return (
             render_template(
@@ -751,6 +768,26 @@ def search_results(project, lang, query):
             ),
             404,
         )
+    return redirect(
+        url_for("wiki_article_by_domain", domain=urlparse(base_url).netloc, title=title),
+        301,
+    )
+
+
+@app.route("/<domain>/search/<path:query>")
+def search_results_by_domain(domain: str, query: str) -> Union[Text, Tuple[Text, int]]:
+    """Fetch and render search results from the Wikimedia Action API."""
+    info = _resolve_for_domain(domain)
+    if not info:
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, {domain} is not a recognized wiki.",
+            ),
+            404,
+        )
+    project, lang, base_url = info
 
     logger.debug(f"Searching {base_url} for {query}")
 
@@ -758,7 +795,9 @@ def search_results(project, lang, query):
         results = fetch_search_results(base_url, query)
     except urllib.error.HTTPError as e:
         if e.code == 429:
-            return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+            return render_rate_limited(
+                get_retry_after(e), lang=lang, project=project, domain=domain
+            )
         return (
             render_template(
                 "article.html",
@@ -783,51 +822,101 @@ def search_results(project, lang, query):
         search_results=results,
         project=project,
         lang=lang,
+        domain=domain,
     )
+
+
+@app.route("/<project>/<lang>/search/<path:query>")
+def search_results(project: str, lang: str, query: str) -> Response:
+    """Legacy route: 301-redirect to the canonical domain-based search URL."""
+    base_url = _resolve_base_url(project, lang)
+    if not base_url:
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, the project {project} does not exist in the {lang} language.",
+            ),
+            404,
+        )
+    return redirect(
+        url_for(
+            "search_results_by_domain", domain=urlparse(base_url).netloc, query=query
+        ),
+        301,
+    )
+
+
+@app.route("/<domain>/wiki/Special:Search/<query>")
+def search_redirect_by_domain(domain: str, query: str) -> Response:
+    """Redirect MediaWiki ``Special:Search`` URLs to the Wikimore search results route."""
+    return redirect(url_for("search_results_by_domain", domain=domain, query=query))
 
 
 @app.route("/<project>/<lang>/wiki/Special:Search/<query>")
 def search_redirect(project: str, lang: str, query: str) -> Response:
-    """Redirect MediaWiki ``Special:Search`` URLs to the Wikimore search results route."""
-    return redirect(url_for("search_results", project=project, lang=lang, query=query))
-
-
-@app.route("/<project>/<lang>/w/index.php")
-def index_php_redirect(project, lang) -> Response:
-    """Redirect ``/w/index.php`` to the project's main page."""
-    try:
-        url = f"{app.languages[lang]['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
-    except KeyError:
-        try:
-            url = f"{app.languages['special']['projects'][project]}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
-        except KeyError:
-            return (
-                render_template(
-                    "article.html",
-                    title="Project does not exist",
-                    content=f"Sorry, the project {project} does not exist in the {lang} language.",
-                ),
-            )
-
-    with urlopen(url) as response:
-        data = json.loads(response.read().decode())
-    main_page = data["query"]["general"]["mainpage"]
-
+    """Legacy route: redirect to the canonical domain-based search URL."""
+    base_url = _resolve_base_url(project, lang)
+    if not base_url:
+        return redirect(url_for("home"))
     return redirect(
-        url_for("wiki_article", project=project, lang=lang, title=main_page)
+        url_for(
+            "search_results_by_domain", domain=urlparse(base_url).netloc, query=query
+        ),
+        301,
     )
 
 
-@app.route("/<project>/<lang>/api/preview/<path:title>")
-def article_preview(project: str, lang: str, title: str) -> Response:
-    """Return a JSON page summary used by the client-side hover preview tooltip."""
+@app.route("/<domain>/w/index.php")
+def index_php_redirect_by_domain(domain: str) -> Response:
+    """Redirect ``/w/index.php`` to the wiki's main page."""
+    info = _resolve_for_domain(domain)
+    if not info:
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, {domain} is not a recognized wiki.",
+            ),
+            404,
+        )
+    _, _, base_url = info
+    url = f"{base_url}/w/api.php?action=query&format=json&meta=siteinfo&siprop=general"
+    with urlopen(url) as response:
+        data = json.loads(response.read().decode())
+    main_page = data["query"]["general"]["mainpage"]
+    return redirect(url_for("wiki_article_by_domain", domain=domain, title=main_page))
+
+
+@app.route("/<project>/<lang>/w/index.php")
+def index_php_redirect(project: str, lang: str) -> Response:
+    """Legacy route: redirect to the canonical domain-based main page."""
     base_url = _resolve_base_url(project, lang)
     if not base_url:
+        return (
+            render_template(
+                "article.html",
+                title="Project does not exist",
+                content=f"Sorry, the project {project} does not exist in the {lang} language.",
+            ),
+            404,
+        )
+    return redirect(
+        url_for("index_php_redirect_by_domain", domain=urlparse(base_url).netloc), 301
+    )
+
+
+@app.route("/<domain>/api/preview/<path:title>")
+def article_preview_by_domain(domain: str, title: str) -> Response:
+    """Return a JSON page summary used by the client-side hover preview tooltip."""
+    info = _resolve_for_domain(domain)
+    if not info:
         return Response(
             json.dumps({"error": "Project not found"}),
             status=404,
             mimetype="application/json",
         )
+    _, _, base_url = info
     try:
         summary = fetch_article_summary(base_url, title)
     except urllib.error.HTTPError as e:
@@ -846,6 +935,26 @@ def article_preview(project: str, lang: str, title: str) -> Response:
     if "thumbnail" in summary and "source" in summary.get("thumbnail", {}):
         summary["thumbnail"]["source"] = get_proxy_url(summary["thumbnail"]["source"])
     return Response(json.dumps(summary), mimetype="application/json")
+
+
+@app.route("/<project>/<lang>/api/preview/<path:title>")
+def article_preview(project: str, lang: str, title: str) -> Response:
+    """Legacy route: 301-redirect to the canonical domain-based preview URL."""
+    base_url = _resolve_base_url(project, lang)
+    if not base_url:
+        return Response(
+            json.dumps({"error": "Project not found"}),
+            status=404,
+            mimetype="application/json",
+        )
+    return redirect(
+        url_for(
+            "article_preview_by_domain",
+            domain=urlparse(base_url).netloc,
+            title=title,
+        ),
+        301,
+    )
 
 
 @app.route("/version")

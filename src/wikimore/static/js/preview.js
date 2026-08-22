@@ -2,11 +2,10 @@
     'use strict';
 
     var body = document.body;
-    var project = body.dataset.project;
-    var lang = body.dataset.lang;
-    if (!project || !lang) return;
+    var domain = body.dataset.domain;
+    if (!domain) return;
 
-    var PREFIX = '/' + project + '/' + lang + '/wiki/';
+    var PREFIX = '/' + domain + '/wiki/';
     var SHOW_DELAY = 300;
     var HIDE_DELAY = 150;
 
@@ -103,7 +102,7 @@
             if (activeCtrl) activeCtrl.abort();
             var ctrl = new AbortController();
             activeCtrl = ctrl;
-            fetch('/' + project + '/' + lang + '/api/preview/' + rawTitle, { signal: ctrl.signal })
+            fetch('/' + domain + '/api/preview/' + rawTitle, { signal: ctrl.signal })
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (data) {
                     if (data && activeCtrl === ctrl) render(data, cx, cy);
