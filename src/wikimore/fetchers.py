@@ -240,6 +240,23 @@ def fetch_file_info(base_url: str, title: str) -> dict:
         return {}
 
 
+@cache.memoize(timeout=86400)
+def fetch_interwiki_map(base_url: str) -> dict[str, str]:
+    """Fetch the interwiki prefix→URL-template map for the wiki at base_url. Cached 24 h.
+
+    Returns a dict mapping each prefix to its URL template, where ``$1`` is
+    the placeholder for the article title.  Returns an empty dict on failure
+    so callers can treat missing entries as non-interwiki titles.
+    """
+    url = f"{base_url}/w/api.php?action=query&format=json&meta=siteinfo&siprop=interwikimap"
+    with urlopen(url) as response:
+        data = json.loads(response.read().decode())
+    return {
+        entry["prefix"]: entry["url"]
+        for entry in data.get("query", {}).get("interwikimap", [])
+    }
+
+
 @cache.memoize(timeout=3600)
 def fetch_article_summary(base_url: str, title: str) -> dict:
     """Fetch REST v1 page summary for article hover previews. Cached 1 h.

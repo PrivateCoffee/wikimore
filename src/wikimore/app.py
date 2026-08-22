@@ -7,7 +7,7 @@ import sys
 import time
 import urllib.error
 from typing import Text, Tuple, Union
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, unquote, urlencode, urlparse
 
 from bs4 import BeautifulSoup
 from flask import (
@@ -31,6 +31,7 @@ from .fetchers import (
     fetch_category_members,
     fetch_file_info,
     fetch_file_page_content,
+    fetch_interwiki_map,
     fetch_license_info,
     fetch_search_results,
     get_active_users,
@@ -302,12 +303,50 @@ def _resolve_base_url(project: str, lang: str) -> str | None:
     return base_url
 
 
+def _wikimore_url_for_external(url: str) -> str | None:
+    """Return a wikimore route URL for a Wikimedia URL, or None if unrecognised.
+
+    Handles ``//`` protocol-relative URLs by assuming ``https``.  Returns None
+    for non-Wikimedia domains so callers can fall back to linking externally.
+    """
+    if url.startswith("//"):
+        url = "https:" + url
+    if not url.startswith("https://"):
+        return None
+    parts = urlparse(url)
+    target_domain = f"https://{parts.netloc}"
+    path_parts = parts.path.split("/")
+    target_title = unquote("/".join(path_parts[2:])) if len(path_parts) >= 3 else None
+    for language, lang_data in app.languages.items():
+        for project_name, project_url in lang_data["projects"].items():
+            if project_url == target_domain:
+                if target_title:
+                    return url_for(
+                        "wiki_article",
+                        project=project_name,
+                        lang=language,
+                        title=target_title,
+                    )
+                return url_for("index_php_redirect", project=project_name, lang=language)
+    return None
+
+
 @app.route("/<project>/<lang>/wiki/<path:title>")
 def wiki_article(
     project: str, lang: str, title: str
 ) -> Union[Text, Response, Tuple[Text, int]]:
     """Fetch and render a Wikimedia article, handling redirects, interwiki links,
     file pages, category pages, and media proxying."""
+    # Collapse any residual percent-encoding from double-encoded Parsoid hrefs
+    # (e.g. %2520 decoded by Flask to %20 — unquote turns that into a plain space).
+    title = unquote(title)
+
+    # Redirect interwiki-prefixed titles to the correct route.
+    prefix, sep, rest = title.partition(":")
+    if sep and prefix in app.languages:
+        # Language interwiki: "en:Category:Iraq_War" → /project/en/wiki/Category:Iraq_War
+        return redirect(url_for("wiki_article", project=project, lang=prefix, title=rest))
+
     base_url = _resolve_base_url(project, lang)
 
     if not base_url:
@@ -319,6 +358,18 @@ def wiki_article(
             ),
             404,
         )
+
+    if sep:
+        # Non-language interwiki: "wikt:cat", "commons:File:Example", etc.
+        try:
+            interwiki_map = fetch_interwiki_map(base_url)
+        except Exception:
+            interwiki_map = {}
+        if prefix in interwiki_map:
+            ext_url = interwiki_map[prefix].replace(
+                "$1", quote(rest.replace(" ", "_"), safe=":@!$&'()*+,;=")
+            )
+            return redirect(_wikimore_url_for_external(ext_url) or ext_url)
 
     try:
         article_info = fetch_article_info(base_url, title)
@@ -566,42 +617,47 @@ def wiki_article(
         logger.debug(f"Redirect URL: {destination}")
         return redirect(destination)
 
+    try:
+        article_interwiki_map = fetch_interwiki_map(base_url)
+    except Exception:
+        article_interwiki_map = {}
+
     for a in soup.find_all("a", href=True) + soup.find_all("area", href=True):
         href = a["href"]
 
         if href.startswith("/wiki/"):
             a["href"] = f"/{project}/{lang}{href}"
         elif href.startswith("//") or href.startswith("https://"):
-            parts = urlparse(href)
-            target_domain = f"https://{parts.netloc}"
-            path_parts = parts.path.split("/")
-            target_title = "/".join(path_parts[2:]) if len(path_parts) >= 3 else None
-            found = False
-
-            for language, language_projects in app.languages.items():
-                for project_name, project_url in language_projects["projects"].items():
-                    if project_url == target_domain:
-                        if target_title:
-                            a["href"] = url_for(
-                                "wiki_article",
-                                project=project_name,
-                                lang=language,
-                                title=target_title,
-                            )
-                        else:
-                            a["href"] = url_for(
-                                "index_php_redirect",
-                                project=project_name,
-                                lang=language,
-                            )
-                        found = True
-                    elif (
-                        language == "en"
-                        and project_url.replace("en.", "www.") == target_domain
-                    ):
-                        a["href"] = url_for("home", project=project_name, lang=language)
-                if found:
-                    break
+            wikimore_url = _wikimore_url_for_external(href)
+            if wikimore_url:
+                a["href"] = wikimore_url
+            elif href.startswith("//"):
+                # Protocol-relative: keep but normalise to https
+                pass
+            else:
+                # Check www. variant for project home pages
+                parts = urlparse(href)
+                target_domain = f"https://{parts.netloc}"
+                for language, lang_data in app.languages.items():
+                    for project_name, project_url in lang_data["projects"].items():
+                        if (
+                            language == "en"
+                            and project_url.replace("en.", "www.") == target_domain
+                        ):
+                            a["href"] = url_for("home", project=project_name, lang=language)
+        elif href.startswith("./") and ":" in href:
+            iw_part = unquote(href[2:])
+            iw_prefix, iw_sep, iw_rest = iw_part.partition(":")
+            if iw_sep:
+                if iw_prefix in app.languages:
+                    a["href"] = url_for(
+                        "wiki_article", project=project, lang=iw_prefix, title=iw_rest
+                    )
+                elif iw_prefix in article_interwiki_map:
+                    ext_url = article_interwiki_map[iw_prefix].replace(
+                        "$1", quote(iw_rest.replace(" ", "_"), safe=":@!$&'()*+,;=")
+                    )
+                    a["href"] = _wikimore_url_for_external(ext_url) or ext_url
 
     for span in soup.find_all("span", class_="mw-editsection"):
         span.decompose()
