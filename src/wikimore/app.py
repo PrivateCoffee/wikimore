@@ -694,6 +694,17 @@ def search_results(project, lang, query):
 
     try:
         results = fetch_search_results(base_url, query)
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return render_rate_limited(get_retry_after(e), lang=lang, project=project)
+        return (
+            render_template(
+                "article.html",
+                title="Search Error",
+                content="An error occurred while fetching search results. Please try again later.",
+            ),
+            500,
+        )
     except Exception:
         return (
             render_template(
