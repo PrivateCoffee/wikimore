@@ -11,6 +11,8 @@
             "module": "flask",
             "env": {
                 "FLASK_DEBUG": "1",
+                "WIKIMORE_EXTRA_WIKIS": "*.fandom.com",
+                "WIKIMORE_EXTRA_PROXY_DOMAINS": "static.wikia.nocookie.net"
             },
             "args": [
                 "--app",

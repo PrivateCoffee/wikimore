@@ -130,12 +130,10 @@ def fetch_article_content(base_url: str, title: str, variant=None) -> str:
 
 
 @cache.memoize(timeout=1800)
-def fetch_search_results(base_url: str, query: str) -> list:
-    """Search ``base_url`` via the Action API and return the ``search`` result list. Cached 30 min."""
+def fetch_search_results(query: str, action_api_url: str) -> list:
+    """Search the wiki at ``action_api_url`` and return the ``search`` result list. Cached 30 min."""
     srquery = escape(quote(query.replace(" ", "_")), True)
-    url = (
-        f"{base_url}/w/api.php?action=query&format=json&list=search&srsearch={srquery}"
-    )
+    url = f"{action_api_url}?action=query&format=json&list=search&srsearch={srquery}"
     logger.debug(f"Fetching search results from {url}")
 
     try:
@@ -148,11 +146,11 @@ def fetch_search_results(base_url: str, query: str) -> list:
 
 
 @cache.memoize(timeout=3600)
-def fetch_article_info(base_url: str, title: str) -> dict:
+def fetch_article_info(title: str, action_api_url: str) -> dict:
     """Fetch page metadata (info, pageprops, langlinks, categories) from the Action API. Cached 1 h."""
-    logger.debug(f"Fetching article info for {title} from {base_url}")
+    logger.debug(f"Fetching article info for {title} from {action_api_url}")
     url = (
-        f"{base_url}/w/api.php?action=query&format=json"
+        f"{action_api_url}?action=query&format=json"
         f"&titles={escape(quote(title.replace(' ', '_')), True)}"
         f"&prop=info|pageprops|categoryinfo|langlinks|categories"
         f"&lllimit=500&cllimit=500&llprop=url"
@@ -172,14 +170,14 @@ def fetch_badge_data(badge_id: str, lang: str) -> dict:
 
 
 @cache.memoize(timeout=3600)
-def fetch_category_members(base_url: str, title: str) -> list:
+def fetch_category_members(title: str, action_api_url: str) -> list:
     """Fetch members of a category page via the Action API. Cached 1 h.
 
     Returns raw member dicts (``pageid``, ``ns``, ``title``); URL generation
     is left to the caller so this function stays cache-safe and Flask-free.
     """
     base_api_url = (
-        f"{base_url}/w/api.php?action=query&format=json&list=categorymembers"
+        f"{action_api_url}?action=query&format=json&list=categorymembers"
         f"&cmtitle={escape(quote(title.replace(' ', '_')), True)}&cmlimit=500"
     )
     all_members = []
@@ -220,10 +218,10 @@ def fetch_license_info(base_url: str, title: str) -> dict | None:
 
 
 @cache.memoize(timeout=1800)
-def fetch_file_info(base_url: str, title: str) -> dict:
+def fetch_file_info(title: str, action_api_url: str) -> dict:
     """Fetch imageinfo metadata (URL, size, MIME type, uploader) for a File page. Cached 30 min."""
     url = (
-        f"{base_url}/w/api.php?action=query&format=json"
+        f"{action_api_url}?action=query&format=json"
         f"&titles={escape(quote(title.replace(' ', '_')), True)}"
         f"&prop=imageinfo&iiprop=url|size|mime|user|timestamp|mediatype"
     )
@@ -241,14 +239,14 @@ def fetch_file_info(base_url: str, title: str) -> dict:
 
 
 @cache.memoize(timeout=86400)
-def fetch_interwiki_map(base_url: str) -> dict[str, str]:
-    """Fetch the interwiki prefix→URL-template map for the wiki at base_url. Cached 24 h.
+def fetch_interwiki_map(action_api_url: str) -> dict[str, str]:
+    """Fetch the interwiki prefix->URL-template map for the wiki at action_api_url. Cached 24 h.
 
     Returns a dict mapping each prefix to its URL template, where ``$1`` is
     the placeholder for the article title.  Returns an empty dict on failure
     so callers can treat missing entries as non-interwiki titles.
     """
-    url = f"{base_url}/w/api.php?action=query&format=json&meta=siteinfo&siprop=interwikimap"
+    url = f"{action_api_url}?action=query&format=json&meta=siteinfo&siprop=interwikimap"
     with urlopen(url) as response:
         data = json.loads(response.read().decode())
     return {
@@ -278,11 +276,45 @@ def fetch_article_summary(base_url: str, title: str) -> dict:
     }
 
 
+@cache.memoize(timeout=3600)
+def fetch_article_content_parsed(title: str, action_api_url: str) -> str:
+    """Fetch article HTML via ``action=parse``. Fallback for wikis without the Parsoid REST API.
+
+    Returns the rendered article HTML string (no ``<body>`` wrapper).
+    Raises ``HTTPError(404)`` when the page does not exist.
+    """
+    url = (
+        f"{action_api_url}?action=parse&format=json&disablelimitreport=1"
+        f"&page={escape(quote(title.replace(' ', '_')), True)}&prop=text"
+    )
+    with urlopen(url) as response:
+        data = json.loads(response.read().decode())
+    if "error" in data:
+        raise urllib.error.HTTPError(url, 404, data["error"]["info"], {}, None)
+    return data["parse"]["text"]["*"]
+
+
+@cache.memoize(timeout=3600)
+def fetch_revision_content(title: str, action_api_url: str) -> str:
+    """Fetch the raw main-slot content of the latest revision of a page. Cached 1 h."""
+    url = (
+        f"{action_api_url}?action=query&format=json"
+        f"&titles={escape(quote(title.replace(' ', '_')), True)}"
+        f"&prop=revisions&rvprop=content&rvslots=main"
+    )
+    with urlopen(url) as response:
+        data = json.loads(response.read().decode())
+    pages = data.get("query", {}).get("pages", {})
+    page = next(iter(pages.values()))
+    slots = page.get("revisions", [{}])[0].get("slots", {})
+    return slots.get("main", {}).get("*", "")
+
+
 @cache.memoize(timeout=1800)
-def fetch_file_page_content(base_url: str, title: str) -> str:
+def fetch_file_page_content(title: str, action_api_url: str) -> str:
     """Fetch the rendered HTML description of a File page via the parse API. Cached 30 min."""
     url = (
-        f"{base_url}/w/api.php?action=parse&format=json"
+        f"{action_api_url}?action=parse&format=json"
         f"&page={escape(quote(title.replace(' ', '_')), True)}&prop=text"
     )
     try:

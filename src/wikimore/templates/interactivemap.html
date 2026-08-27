@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block head %}
+    <link rel="stylesheet" href="https://nobsdelivr.private.coffee/npm/leaflet@1.9.4/dist/leaflet.css"
+          crossorigin="">
+    <script src="https://nobsdelivr.private.coffee/npm/leaflet@1.9.4/dist/leaflet.js"
+            crossorigin=""></script>
+    <style>
+        #wm-imap { width: 100%; height: 70vh; border: 1px solid var(--border-color, #ccc); }
+        #wm-imap-categories { margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .wm-imap-cat-btn {
+            padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+            border: 1px solid var(--border-color, #ccc); background: var(--bg-secondary, #f5f5f5);
+        }
+        .wm-imap-cat-btn.active { background: var(--accent, #3388ff); color: #fff; border-color: var(--accent, #3388ff); }
+    </style>
+{% endblock %}
+{% block content %}
+    <h1 class="title">{{ title }}</h1>
+    {% if interwiki %}
+        <div class="language-selector">
+            <input type="checkbox" id="language-selector-toggle" class="language-selector-toggle">
+            <label for="language-selector-toggle" class="language-selector-label">
+                <span class="language-selector-label-text">Language</span>
+                <span class="language-selector-label-icon"></span>
+            </label>
+            <div class="language-selector-menu">
+                <ul class="language-selector-list">
+                    {% for lang in interwiki %}
+                        <li class="language-selector-item">
+                            <a href="{{ lang.url }}" class="language-selector-link">{{ lang.langname }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+    <div id="wm-imap-categories"></div>
+    <div id="wm-imap"></div>
+    {% if categories %}
+        <div id="wm-categories">
+            {% for category in categories %}
+                <a href="{{ category.url }}" class="wm-category">{{ category.title }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <script>
+    (function () {
+        var mapData = {{ map_data | tojson }};
+        var imageUrl = {{ map_image_url | tojson }};
+
+        var bounds = mapData.mapBounds;
+        var leafletBounds;
+        if (bounds && bounds.length === 4) {
+            leafletBounds = [[bounds[1], bounds[0]], [bounds[3], bounds[2]]];
+        } else if (bounds && bounds.length === 2 && Array.isArray(bounds[0])) {
+            leafletBounds = [[bounds[0][1], bounds[0][0]], [bounds[1][1], bounds[1][0]]];
+        } else {
+            var positions = (mapData.markers || []).map(function (m) { return m.position; });
+            if (positions.length) {
+                var xs = positions.map(function (p) { return p[0]; });
+                var ys = positions.map(function (p) { return p[1]; });
+                leafletBounds = [[Math.min.apply(null, ys), Math.min.apply(null, xs)],
+                                 [Math.max.apply(null, ys), Math.max.apply(null, xs)]];
+            } else {
+                leafletBounds = [[0, 0], [1000, 1000]];
+            }
+        }
+
+        var map = L.map('wm-imap', {
+            crs: L.CRS.Simple,
+            minZoom: -3,
+            maxZoom: 4,
+        });
+
+        if (imageUrl) {
+            L.imageOverlay(imageUrl, leafletBounds).addTo(map);
+        }
+        map.fitBounds(leafletBounds);
+
+        var categories = mapData.categories || [];
+        var catNames = {};
+        categories.forEach(function (c, i) {
+            catNames[String(i + 1)] = c.name;
+        });
+
+        var catLayers = {};
+        categories.forEach(function (c, i) {
+            catLayers[String(i + 1)] = L.layerGroup().addTo(map);
+        });
+        var uncategorised = L.layerGroup().addTo(map);
+
+        var coordinateOrder = mapData.coordinateOrder || 'xy';
+
+        (mapData.markers || []).forEach(function (m) {
+            var pos = m.position;
+            var lat, lng;
+            if (coordinateOrder === 'yx') {
+                lat = pos[0]; lng = pos[1];
+            } else {
+                lat = pos[1]; lng = pos[0];
+            }
+
+            var catId = String(m.categoryId || '');
+            var layer = catLayers[catId] || uncategorised;
+
+            var popup = m.popup || {};
+            var popupTitle = popup.title || catNames[catId] || '';
+            var popupDesc = popup.description || '';
+            var popupLink = (popup.link && popup.link.url) ? popup.link : null;
+
+            var popupHtml = '<strong>' + popupTitle + '</strong>';
+            if (popupDesc) popupHtml += '<br>' + popupDesc;
+            if (popupLink) {
+                popupHtml += '<br><a href="' + popupLink.url + '" target="_blank">' +
+                             (popupLink.label || popupLink.url) + '</a>';
+            }
+
+            L.circleMarker([lat, lng], {radius: 7, color: '#3388ff', fillOpacity: 0.8})
+             .bindPopup(popupHtml)
+             .addTo(layer);
+        });
+
+        var container = document.getElementById('wm-imap-categories');
+        categories.forEach(function (c, i) {
+            var catId = String(i + 1);
+            var btn = document.createElement('button');
+            btn.className = 'wm-imap-cat-btn active';
+            btn.textContent = c.name;
+            btn.dataset.catId = catId;
+            btn.addEventListener('click', function () {
+                var layer = catLayers[catId];
+                if (map.hasLayer(layer)) {
+                    map.removeLayer(layer);
+                    btn.classList.remove('active');
+                } else {
+                    map.addLayer(layer);
+                    btn.classList.add('active');
+                }
+            });
+            container.appendChild(btn);
+        });
+    })();
+    </script>
+{% endblock %}
+{% block license %}
+    {% if license %}
+        <p class="license">This content is licensed under the <a href="{{ license.url }}">{{ license.title }}</a>.</p>
+    {% endif %}
+{% endblock %}

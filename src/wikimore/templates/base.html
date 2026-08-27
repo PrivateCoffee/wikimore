@@ -45,6 +45,14 @@
                             <option {% if key == project %}selected="selected"{% endif %}
                                     value="{{ key }}">{{ value }}</option>
                         {% endfor %}
+                        {% if extra_wikis %}
+                        <optgroup label="Extra Wikis">
+                            {% for wiki in extra_wikis %}
+                                <option value="{{ wiki.domain }}"
+                                        {% if wiki.domain == project %}selected="selected"{% endif %}>{{ wiki.domain }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
                     </select>
                     <select name="lang" id="lang">
                         {% for key, value in languages.items() %}
