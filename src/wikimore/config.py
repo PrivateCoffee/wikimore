@@ -61,7 +61,7 @@ def get_admin_email() -> str | None:
     return os.environ.get("WIKIMORE_ADMIN_EMAIL")
 
 
-def urlopen(url, headers={}, **kwargs):
+def urlopen(url, headers=None, **kwargs):
     """Wrapper around ``urllib.request.urlopen`` that injects a Wikimore User-Agent.
 
     Accepts the same arguments as the stdlib function; ``timeout`` defaults to 30 s
@@ -75,7 +75,7 @@ def urlopen(url, headers={}, **kwargs):
     )
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": user_agent, **headers},
+        headers={"User-Agent": user_agent, **(headers or {})},
     )
     kwargs.setdefault("timeout", 30)
     return urllib.request.urlopen(req, **kwargs)
@@ -97,5 +97,5 @@ def get_retry_after(exc: urllib.error.HTTPError) -> int | None:
             pass
         delta = parsedate_to_datetime(value) - datetime.now(timezone.utc)
         return max(0, int(delta.total_seconds()))
-    except Exception:
+    except (ValueError, TypeError, AttributeError, OverflowError):
         return None

@@ -8,7 +8,9 @@ config = {
         "WIKIMORE_CACHE_TYPE", os.environ.get("CACHE_TYPE", "SimpleCache")
     ),
     "CACHE_DEFAULT_TIMEOUT": int(
-        os.environ.get("WIKIMORE_CACHE_TIMEOUT", os.environ.get("CACHE_TIMEOUT", 3600))
+        os.environ.get(
+            "WIKIMORE_CACHE_TIMEOUT", os.environ.get("CACHE_TIMEOUT", "3600")
+        )
     ),  # 1 hour default
 }
 

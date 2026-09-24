@@ -10,9 +10,9 @@ from .fetchers import (
     fetch_category_members,
     fetch_file_info,
     fetch_file_page_content,
-    fetch_revision_content,
     fetch_interwiki_map,
     fetch_license_info,
+    fetch_revision_content,
     fetch_search_results,
 )
 

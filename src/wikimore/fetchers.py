@@ -3,7 +3,6 @@ import logging
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import escape
-from typing import Dict, List, Tuple, Union
 from urllib.parse import quote
 
 from .cache import cache
@@ -12,12 +11,12 @@ from .config import urlopen
 logger = logging.getLogger(__name__)
 
 # Per-wiki license cache (license is the same for every page on a given wiki)
-_licenses: Dict[str, dict | None] = {}
+_licenses: dict[str, dict | None] = {}
 
 
 @cache.cached(timeout=86400, key_prefix="wikimedia_projects")
-def get_wikimedia_projects() -> Tuple[
-    Dict[str, str], Dict[str, Dict[str, Union[str, Dict[str, str]]]]
+def get_wikimedia_projects() -> tuple[
+    dict[str, str], dict[str, dict[str, str | dict[str, str]]]
 ]:
     """Fetch the Wikimedia sitematrix and return ``(projects, languages)``.
 
@@ -73,7 +72,7 @@ def get_wikimedia_projects() -> Tuple[
     return projects, languages
 
 
-def get_active_users(languages: dict) -> List[Tuple[str, int]]:
+def get_active_users(languages: dict) -> list[tuple[str, int]]:
     """Return ``(lang_code, active_user_count)`` pairs sorted descending by count.
 
     Used to build the automatic language sort order when ``WIKIMORE_LANGSORT=auto``.
@@ -88,7 +87,7 @@ def get_active_users(languages: dict) -> List[Tuple[str, int]]:
             with urlopen(url) as response:
                 result = json.loads(response.read().decode())
             return lang, result["query"]["statistics"]["activeusers"]
-        except Exception as e:
+        except (OSError, ValueError, KeyError) as e:
             logger.error(f"Error fetching active users for {lang}: {e}")
             return lang, None
 
@@ -122,11 +121,8 @@ def fetch_article_content(base_url: str, title: str, variant=None) -> str:
     if variant:
         headers["Accept-Language"] = variant
 
-    try:
-        with urlopen(api_url, headers) as response:
-            return response.read().decode()
-    except urllib.error.HTTPError:
-        raise
+    with urlopen(api_url, headers) as response:
+        return response.read().decode()
 
 
 @cache.memoize(timeout=1800)
@@ -212,7 +208,7 @@ def fetch_license_info(base_url: str, title: str) -> dict | None:
             with urlopen(url) as response:
                 data = json.loads(response.read().decode())
             _licenses[base_url] = data["license"]
-        except Exception:
+        except (OSError, ValueError, KeyError):
             _licenses[base_url] = None
     return _licenses[base_url]
 
@@ -233,7 +229,7 @@ def fetch_file_info(title: str, action_api_url: str) -> dict:
         return page.get("imageinfo", [{}])[0]
     except urllib.error.HTTPError:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         logger.error(f"Error fetching file info for {title}: {e}")
         return {}
 
@@ -264,11 +260,8 @@ def fetch_article_summary(base_url: str, title: str) -> dict:
     Re-raises ``HTTPError`` so callers can handle 404/429 themselves.
     """
     url = f"{base_url}/api/rest_v1/page/summary/{escape(quote(title.replace(' ', '_')), True)}"
-    try:
-        with urlopen(url) as response:
-            data = json.loads(response.read().decode())
-    except urllib.error.HTTPError:
-        raise
+    with urlopen(url) as response:
+        data = json.loads(response.read().decode())
     return {
         k: data[k]
         for k in ("title", "description", "extract", "thumbnail")
@@ -323,6 +316,6 @@ def fetch_file_page_content(title: str, action_api_url: str) -> str:
         return data.get("parse", {}).get("text", {}).get("*", "")
     except urllib.error.HTTPError:
         raise
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         logger.error(f"Error fetching file description for {title}: {e}")
         return ""
