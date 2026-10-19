@@ -31,14 +31,14 @@
         "location": "DE"
     },
     {
-        "name": "wp.dc09.ru",
-        "url": "https://wp.dc09.ru",
+        "name": "wp.dc09.xyz",
+        "url": "https://wp.dc09.xyz",
         "type": "clearnet",
         "provider": {
-            "name": "dc09.ru",
-            "url": "https://dc09.ru"
+            "name": "dc09.xyz",
+            "url": "https://dc09.xyz"
         },
-        "location": "RU"
+        "location": "NL"
     },
     {
         "name": "wikimore.privadency.com",
@@ -49,16 +49,5 @@
             "url": "https://privadency.com"
         },
         "location": "DE"
-    },
-    {
-        "name": "wikimore.blitzw.in",
-        "url": "https://wikimore.blitzw.in",
-        "type": "clearnet",
-        "provider": {
-            "name": "Blitzw.in",
-            "url": "https://blitzw.in"
-        },
-        "location": "DK",
-        "notes": "Runs on modified code"
     }
 ]

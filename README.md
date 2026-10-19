@@ -25,9 +25,8 @@ This project is still in development and more features will be added in the futu
 | ---------------------------------------------------------- | ---------------------------------------- | --------------------- | --------------------- |
 | [wikimore.private.coffee](https://wikimore.private.coffee) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺         | Main instance         |
 | [wm.bloat.cat](https://wm.bloat.cat)                       | [Bloat.cat](https://bloat.cat)           | Germany 🇩🇪 🇪🇺         |                       |
-| [wp.dc09.ru](https://wp.dc09.ru)                           | [dc09.ru](https://dc09.ru)               | Russian Federation 🇷🇺 |                       |
+| [wp.dc09.xyz](https://wp.dc09.xyz)                         | [dc09.xyz](https://dc09.xyz)             | Netherlands 🇳🇱 🇪🇺     |                       |
 | [wikimore.privadency.com](https://wikimore.privadency.com) | [privadency](https://privadency.com)     | Germany 🇩🇪 🇪🇺         |                       |
-| [wikimore.blitzw.in](https://wikimore.blitzw.in)           | [Blitzw.in](https://blitzw.in)           | Denmark 🇩🇰 🇪🇺         | Runs on modified code |
 
 <!-- END_INSTANCE_LIST -->
 
