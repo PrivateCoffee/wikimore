@@ -21,12 +21,13 @@ This project is still in development and more features will be added in the futu
 
 <!-- START_INSTANCE_LIST type:eq=clearnet -->
 
-| URL                                                        | Provided by                              | Country               | Notes                 |
-| ---------------------------------------------------------- | ---------------------------------------- | --------------------- | --------------------- |
-| [wikimore.private.coffee](https://wikimore.private.coffee) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺         | Main instance         |
-| [wm.bloat.cat](https://wm.bloat.cat)                       | [Bloat.cat](https://bloat.cat)           | Germany 🇩🇪 🇪🇺         |                       |
-| [wp.dc09.xyz](https://wp.dc09.xyz)                         | [dc09.xyz](https://dc09.xyz)             | Netherlands 🇳🇱 🇪🇺     |                       |
-| [wikimore.privadency.com](https://wikimore.privadency.com) | [privadency](https://privadency.com)     | Germany 🇩🇪 🇪🇺         |                       |
+| URL                                                        | Provided by                              | Country           | Notes         |
+| ---------------------------------------------------------- | ---------------------------------------- | ----------------- | ------------- |
+| [wikimore.private.coffee](https://wikimore.private.coffee) | [Private.coffee](https://private.coffee) | Austria 🇦🇹 🇪🇺     | Main instance |
+| [wm.bloat.cat](https://wm.bloat.cat)                       | [Bloat.cat](https://bloat.cat)           | Germany 🇩🇪 🇪🇺     |               |
+| [wp.dc09.xyz](https://wp.dc09.xyz)                         | [dc09.xyz](https://dc09.xyz)             | Netherlands 🇳🇱 🇪🇺 |               |
+| [wikimore.privadency.com](https://wikimore.privadency.com) | [privadency](https://privadency.com)     | Germany 🇩🇪 🇪🇺     |               |
+| [wikimore.utilibre.org](https://wikimore.utilibre.org)     | [Utilibre](https://utilibre.org)         | Germany 🇩🇪 🇪🇺     |               |
 
 <!-- END_INSTANCE_LIST -->
 

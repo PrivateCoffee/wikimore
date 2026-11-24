@@ -49,5 +49,15 @@
             "url": "https://privadency.com"
         },
         "location": "DE"
+    },
+    {
+        "name": "wikimore.utilibre.org",
+        "url": "https://wikimore.utilibre.org",
+        "type": "clearnet",
+        "provider": {
+            "name": "Utilibre",
+            "url": "https://utilibre.org"
+        },
+        "location": "DE"
     }
 ]
